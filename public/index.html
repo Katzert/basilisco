@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Basilisco</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- KaTeX for math formulas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Basilisco</h1>
+            <div class="controls">
+                <select id="modelSelect">
+                    <option value="flash3">Gemini Flash 3</option>
+                    <option value="thinking">Gemini Flash Thinking</option>
+                    <option value="gemini31">Gemini Pro 3.1</option>
+                    <option value="gemma4">Gemma 4 31B</option>
+                </select>
+                <label>
+                    <input type="checkbox" id="useSearch"> Búsqueda
+                </label>
+            </div>
+        </header>
+
+        <div id="quotaMeter" class="quota-meter hidden">
+            <div class="quota-item">RPM: <span id="valRPM">0 / 5</span></div>
+            <div class="quota-item">TPM: <span id="valTPM">0 / 250K</span></div>
+            <div class="quota-item">RPD: <span id="valRPD">0 / 20</span></div>
+        </div>
+        
+        <main id="chatBox">
+            <div class="message system" data-index="-1">Conectado. Esperando entrada...</div>
+        </main>
+        
+        <div id="attachmentsPreview"></div>
+        <div class="input-area">
+            <label class="file-label">
+                📎
+                <input type="file" id="fileInput" multiple accept="image/*, audio/*, video/*, application/pdf">
+            </label>
+            <textarea id="messageInput" placeholder="Escribe tu mensaje..." rows="1"></textarea>
+            <button id="sendBtn">Enviar</button>
+            <button id="stopBtn" class="hidden">Detener</button>
+        </div>
+    </div>
+    <script src="script.js?v=4"></script>
+</body>
+</html>

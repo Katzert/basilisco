@@ -1,0 +1,5 @@
+node_modules
+.env
+sessions_db.json
+*.log
+test_*.js
