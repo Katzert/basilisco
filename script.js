@@ -302,7 +302,6 @@ async function sendMessage() {
         }
 
     } catch (err) {
-    } catch (err) {
         if (err.name === 'AbortError') {
             appendMessage('system', 'Generación detenida por el usuario.');
         } else {
