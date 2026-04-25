@@ -30,6 +30,12 @@ if (fs.existsSync(SESSIONS_FILE)) {
 }
 
 const saveSessions = () => {
+    // In serverless environments like Vercel, the filesystem is read-only.
+    // We skip saving to disk to avoid errors.
+    if (process.env.VERCEL) {
+        console.log("Running on Vercel: Skipping disk persistence.");
+        return;
+    }
     try {
         fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessionsHistory, null, 2));
     } catch (e) {
