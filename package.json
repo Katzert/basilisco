@@ -2,9 +2,7 @@
   "name": "basilisco",
   "version": "1.0.0",
   "description": "Minimalist Gemini Chat Web App",
-  "main": "api/chat.js",
   "scripts": {
-    "start": "node api/chat.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
