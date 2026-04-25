@@ -62,6 +62,10 @@ IMPORTANTE:
 1. NO escribas NADA antes de <think>.
 2. Responde usando datos de foros y documentación oficial.`;
 
+app.get('/', (req, res) => {
+    res.redirect('/index.html');
+});
+
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, interaction_id, model, use_search, truncate_history_at_index, media_parts } = req.body;
