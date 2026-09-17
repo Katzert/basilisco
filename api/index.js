@@ -74,11 +74,19 @@ function getModelCandidates(requestedModel) {
             return ['gemma-4-31b-it', 'gemma-4-26b-a4b-it', 'gemini-3.6-flash'];
         case 'antigravity':
             return ['antigravity-preview-09-2026', 'antigravity-preview-05-2026', 'gemini-3.6-flash'];
+        // Modelos OpenCode Zen (100% Oficiales y Gratuitos - Free Tier)
+        case 'deepseek-v4-flash-free':
         case 'zenDeepseek':
+        case 'nemotron-3-ultra-free':
         case 'zenNemotron':
-        case 'zenLaguna':
+        case 'nemotron-3.5-lightning-free':
+        case 'mimo-v2.5-free':
         case 'zenMimo':
+        case 'ling-3.0-flash-fin-free':
         case 'zenLing':
+        case 'big-pickle':
+        case 'union-alpha':
+        case 'zenLaguna':
         case 'zenNorth':
             return ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
         default:
@@ -92,15 +100,41 @@ function getSystemInstruction(requestedModel, modelName) {
 REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
 Actúa como ingeniero senior de software y sistemas, priorizando soluciones elegantes, verificables, basadas en evidencia y libres de suposiciones no verificadas.`;
     }
-    if (requestedModel === 'zenDeepseek') {
-        return `Eres DeepSeek V4 Flash integrado en el entorno Basilisco.
+    // Personas para los Modelos Gratuitos de OpenCode Zen (Free Tier)
+    if (requestedModel === 'deepseek-v4-flash-free' || requestedModel === 'zenDeepseek') {
+        return `Eres DeepSeek V4 Flash (OpenCode Zen Free Tier) en Basilisco.
 REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en algoritmia avanzada, arquitectura de sistemas, código ultra-optimizado y razonamiento técnico exhaustivo.`;
+Especializado en algoritmia de alto rendimiento, análisis formal de código, optimización extrema y arquitectura limpia.`;
     }
-    if (requestedModel === 'zenNemotron') {
-        return `Eres Nemotron 3 Ultra integrado en el entorno Basilisco.
+    if (requestedModel === 'nemotron-3-ultra-free' || requestedModel === 'zenNemotron') {
+        return `Eres Nemotron 3 Ultra (OpenCode Zen Free Tier) en Basilisco.
 REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en razonamiento formal, alineación de código y síntesis arquitectónica de alto nivel.`;
+Especializado en razonamiento formal, alineación de modelos, verificación de contratos y explicaciones técnicas de alto nivel.`;
+    }
+    if (requestedModel === 'nemotron-3.5-lightning-free') {
+        return `Eres Nemotron 3.5 Lightning (OpenCode Zen Free Tier) en Basilisco.
+REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
+Especializado en generación ultra-rápida, síntesis de código, refactorización y depuración ágil.`;
+    }
+    if (requestedModel === 'mimo-v2.5-free' || requestedModel === 'zenMimo') {
+        return `Eres MiMo V2.5 (OpenCode Zen Free Tier) en Basilisco.
+REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
+Especializado en razonamiento analítico, resolución de problemas complejos e ingeniería de software.`;
+    }
+    if (requestedModel === 'ling-3.0-flash-fin-free' || requestedModel === 'zenLing') {
+        return `Eres Ling 3.0 Flash Fin (OpenCode Zen Free Tier) en Basilisco.
+REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
+Especializado en lógica formal, análisis cuantitativo, procesamiento rápido de consultas y estructuras de datos.`;
+    }
+    if (requestedModel === 'big-pickle') {
+        return `Eres Big Pickle (OpenCode Zen Free Tier) en Basilisco.
+REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
+Especializado en Python avanzado, ingeniería de datos, scripts de automatización y optimización de pipelines.`;
+    }
+    if (requestedModel === 'union-alpha') {
+        return `Eres Union Alpha (OpenCode Zen Free Tier) en Basilisco.
+REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
+Especializado en arquitecturas experimentales, diseño de compiladores y optimizaciones de bajo nivel.`;
     }
     if (modelName.includes('gemma')) {
         return systemInstruction + "\n\nAsegúrate de SIEMPRE usar <think> antes de responder, sin excepciones.";
@@ -287,11 +321,19 @@ app.post('/api/chat', async (req, res) => {
         sessionsHistory[currentSessionId] = JSON.parse(JSON.stringify(newHistory));
         saveSessions();
 
-        // Calculate quota specs based on active model
+        // Calculate quota specs based on active model and requested Zen Free tier
         let maxRpm = 15;
         let maxTpm = '1M';
         let maxRpd = 1500;
-        if (successfulModel && successfulModel.includes('gemini-3')) {
+        let reportedModel = successfulModel;
+
+        if (model && (model.includes('free') || model.includes('pickle') || model.includes('union') || model.startsWith('zen'))) {
+            // OpenCode Zen 100% Free Tier specs
+            maxRpm = 30;
+            maxTpm = '100K';
+            maxRpd = 100;
+            reportedModel = `${model} (OpenCode Zen Free)`;
+        } else if (successfulModel && successfulModel === 'gemini-3-flash-preview') {
             maxRpm = 5;
             maxTpm = '250K';
             maxRpd = 20;
@@ -305,7 +347,7 @@ app.post('/api/chat', async (req, res) => {
             text: finalModelResponse.text(),
             interaction_id: currentSessionId,
             message_index: newMessageIndex,
-            active_model: successfulModel,
+            active_model: reportedModel,
             fallback_used: successfulModel !== candidates[0],
             usage: {
                 rpm,

@@ -55,17 +55,23 @@ let isRecordingVoice = false;
 
 /* Límites de uso por modelo */
 const MODEL_LIMITS = {
-    flash3:      { maxRpm: 5,  maxTpm: "250K", maxRpd: 20 },
-    thinking:    { maxRpm: 5,  maxTpm: "250K", maxRpd: 20 },
-    antigravity: { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
-    gemma26:     { maxRpm: 30, maxTpm: "16K",  maxRpd: 14400 },
-    gemma4:      { maxRpm: 30, maxTpm: "16K",  maxRpd: 14400 },
-    zenDeepseek: { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
-    zenNemotron: { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
-    zenLaguna:   { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
-    zenMimo:     { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
-    zenLing:     { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
-    zenNorth:    { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    flash3:                       { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    thinking:                     { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    antigravity:                  { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    gemma26:                      { maxRpm: 30, maxTpm: "16K",  maxRpd: 14400 },
+    gemma4:                       { maxRpm: 30, maxTpm: "16K",  maxRpd: 14400 },
+    "deepseek-v4-flash-free":     { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    "nemotron-3-ultra-free":      { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    "nemotron-3.5-lightning-free":{ maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    "mimo-v2.5-free":             { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    "ling-3.0-flash-fin-free":    { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    "big-pickle":                 { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    "union-alpha":                { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    // Compatibilidad retroactiva
+    zenDeepseek:                  { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    zenNemotron:                  { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    zenMimo:                      { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    zenLing:                      { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
 };
 
 /* ── Persistencia ─────────────────────────────────────── */
