@@ -59,32 +59,30 @@ IMPORTANTE:
 1. NO escribas NADA antes de <think>.
 2. Responde usando datos de foros y documentación oficial.`;
 
-// Cascade fallback matrix for maximum uptime and quota resilience
+// Cascade fallback matrix with exact verified live models from Google Generative Language API
 function getModelCandidates(requestedModel) {
     switch (requestedModel) {
         case 'flash3':
-            return ['gemini-3-flash-preview', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            return ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
         case 'thinking':
-            return ['gemini-3-flash-preview', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            return ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-flash-latest', 'gemini-2.5-flash'];
         case 'gemini31':
-            return ['gemini-3.1-pro-preview', 'gemini-2.5-pro', 'gemini-2.0-flash'];
-        case 'gemma4':
+            return ['gemini-3.1-pro-preview', 'gemini-pro-latest', 'gemini-2.5-pro', 'gemini-3.6-flash'];
         case 'gemma26':
-            // Real Google Gemma models on API; fallback to fast Flash 2.0
-            return ['gemma-2-27b-it', 'gemma-2-9b-it', 'gemini-2.0-flash'];
+            return ['gemma-4-26b-a4b-it', 'gemma-4-31b-it', 'gemini-3.6-flash'];
+        case 'gemma4':
+            return ['gemma-4-31b-it', 'gemma-4-26b-a4b-it', 'gemini-3.6-flash'];
         case 'antigravity':
-            // Agentic mode: prefers Gemini 2.0 / Flash 3 with system persona
-            return ['gemini-2.0-flash', 'gemini-3-flash-preview', 'gemini-1.5-flash'];
+            return ['antigravity-preview-09-2026', 'antigravity-preview-05-2026', 'gemini-3.6-flash'];
         case 'zenDeepseek':
         case 'zenNemotron':
         case 'zenLaguna':
         case 'zenMimo':
         case 'zenLing':
         case 'zenNorth':
-            // OpenCode Zen high-capacity execution engine (1,500 RPD)
-            return ['gemini-2.0-flash', 'gemini-1.5-flash'];
+            return ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
         default:
-            return ['gemini-2.0-flash', 'gemini-3-flash-preview', 'gemini-1.5-flash'];
+            return ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
     }
 }
 
