@@ -57,15 +57,15 @@ let isRecordingVoice = false;
 const MODEL_LIMITS = {
     flash3:      { maxRpm: 5,  maxTpm: "250K", maxRpd: 20 },
     thinking:    { maxRpm: 5,  maxTpm: "250K", maxRpd: 20 },
-    antigravity: { maxRpm: 60, maxTpm: "100K", maxRpd: 100, maxTotalTokens: 20000 },
+    antigravity: { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
     gemma26:     { maxRpm: 30, maxTpm: "16K",  maxRpd: 14400 },
     gemma4:      { maxRpm: 30, maxTpm: "16K",  maxRpd: 14400 },
-    zenDeepseek: { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
-    zenNemotron: { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
-    zenLaguna:   { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
-    zenMimo:     { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
-    zenLing:     { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
-    zenNorth:    { maxRpm: 30, maxTpm: "100K", maxRpd: 100 },
+    zenDeepseek: { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    zenNemotron: { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    zenLaguna:   { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    zenMimo:     { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    zenLing:     { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
+    zenNorth:    { maxRpm: 15, maxTpm: "1M",   maxRpd: 1500 },
 };
 
 /* ── Persistencia ─────────────────────────────────────── */
@@ -1107,7 +1107,6 @@ async function doSend(text, files = []) {
             messageInput.value = text;
             selectedFiles = files;
             renderAttachments();
-            updateCounters();
             pinModal.showModal();
             return;
         }
@@ -1122,6 +1121,9 @@ async function doSend(text, files = []) {
             fullText = data.text || data.message || "";
             conv.interactionId = data.interaction_id;
             updateQuota(data.usage);
+            if (data.fallback_used && data.active_model) {
+                showToast(`⚡ Fallback activo: servido por ${data.active_model}`);
+            }
         } else {
             const reader = res.body.getReader();
             const decoder = new TextDecoder();

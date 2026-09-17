@@ -744,7 +744,7 @@ class SkillManager {
       }
     }
 
-    if (!skill) return userText;
+    if (!skill || skill.id === "auto-skill-router") return userText;
 
     const strictNotice = this.strictMode
       ? "\n[MODO ESTRICTO: Es OBLIGATORIO acatar fielmente cada directriz y metodología de esta skill. No omitas reglas ni des respuestas genéricas.]"
