@@ -114,6 +114,19 @@ app.get('/', (req, res) => {
     res.redirect('/index.html');
 });
 
+app.get('/api/models', async (req, res) => {
+    try {
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
+        const data = await resp.json();
+        const supported = (data.models || [])
+            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+            .map(m => ({ name: m.name.replace('models/', ''), displayName: m.displayName }));
+        res.json({ count: supported.length, models: supported });
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, interaction_id, model, use_search, truncate_history_at_index, media_parts } = req.body;
