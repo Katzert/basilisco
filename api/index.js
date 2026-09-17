@@ -184,8 +184,19 @@ app.post('/api/chat', async (req, res) => {
                 const chatSession = generativeModel.startChat({ history: sanitizedHistory });
 
                 console.log(`[ATTEMPT] Model: ${candidate} (requested: ${model})`);
-                const result = await chatSession.sendMessage(parts);
-                const response = await result.response;
+                
+                // Timeout per candidate (6s for slow/cold-start models, 12s otherwise) to guarantee Vercel response
+                const timeoutLimit = candidate.includes('gemma') ? 6000 : 12000;
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error(`Timeout de ${timeoutLimit}ms superado en ${candidate}`)), timeoutLimit)
+                );
+
+                const sendPromise = (async () => {
+                    const result = await chatSession.sendMessage(parts);
+                    return await result.response;
+                })();
+
+                const response = await Promise.race([sendPromise, timeoutPromise]);
 
                 let candidateResponse = response;
                 let functionCalls = response.functionCalls();
