@@ -1107,6 +1107,7 @@ async function doSend(text, files = []) {
             messageInput.value = text;
             selectedFiles = files;
             renderAttachments();
+            updateCounters();
             pinModal.showModal();
             return;
         }
