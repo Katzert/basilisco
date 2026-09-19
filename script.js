@@ -1026,7 +1026,7 @@ function loadActiveConv() {
         return;
     }
     conv.messages.forEach((m, i) => {
-        const div = appendMessage(m.role, m.text, false, m.ts);
+        const div = appendMessage(m.role, m.text, true, m.ts);
         div.dataset.index = i;
         addMessageActions(div, i, m.role, m.text);
     });
@@ -1102,18 +1102,26 @@ function parseMarkdown(text) {
         const hasMath = /(\$\$?.+?\$\$?)/s.test(text);
         if (hasMath && !katexReady) ensureKatex();
 
+        // Autocerrar <think> si quedó abierto por interrupción o corte
+        let processedText = text;
+        if (/<think(?:\s+[^>]*)?>/i.test(processedText) && !/<\/think>/i.test(processedText)) {
+            processedText += "\n</think>";
+        }
+
         let html = "";
-        const re = /<think>([\s\S]*?)<\/think>/g;
+        const re = /<think(?:\s+[^>]*)?>([\s\S]*?)<\/think>/gi;
         let last = 0, m;
-        while ((m = re.exec(text)) !== null) {
-            html += marked.parse(text.slice(last, m.index));
-            html += `<details class="thought-block" open><summary>Pensamiento analítico</summary><div>${escapeHtml(m[1])}</div></details>`;
+        while ((m = re.exec(processedText)) !== null) {
+            html += marked.parse(processedText.slice(last, m.index));
+            const inner = m[1].trim();
+            const innerHtml = inner ? marked.parse(inner) : "";
+            html += `<details class="thought-block" open><summary>Pensamiento analítico</summary><div>${innerHtml}</div></details>`;
             last = m.index + m[0].length;
         }
-        html += marked.parse(text.slice(last));
+        html += marked.parse(processedText.slice(last));
         html = DOMPurify.sanitize(html, {
-            ADD_TAGS: ["math", "semantics", "mrow", "mi", "mo", "mn", "ms", "mspace", "munderover", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom", "mfenced", "menclose", "msub", "msup", "msubsup", "mtable", "mtr", "mtd", "maligngroup", "malignmark", "mlabeledtr", "mstack", "mlongdiv", "msgroup", "msrow", "mscarries", "mscarry", "maction", "annotation", "annotation-xml"],
-            ADD_ATTR: ["display", "xmlns", "href", "mathvariant", "mathcolor", "mathbackground", "mathsize", "dir", "fontfamily", "fontweight", "fontstyle", "fontsize", "color", "background", "class"]
+            ADD_TAGS: ["details", "summary", "math", "semantics", "mrow", "mi", "mo", "mn", "ms", "mspace", "munderover", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom", "mfenced", "menclose", "msub", "msup", "msubsup", "mtable", "mtr", "mtd", "maligngroup", "malignmark", "mlabeledtr", "mstack", "mlongdiv", "msgroup", "msrow", "mscarries", "mscarry", "maction", "annotation", "annotation-xml"],
+            ADD_ATTR: ["open", "display", "xmlns", "href", "mathvariant", "mathcolor", "mathbackground", "mathsize", "dir", "fontfamily", "fontweight", "fontstyle", "fontsize", "color", "background", "class"]
         });
 
         // Enriquecer bloques de código con cabecera de lenguaje, wrap toggle y botón copiar
@@ -1220,7 +1228,7 @@ function appendMessage(sender, text, doParse = true, timestamp = Date.now()) {
 
     const body = document.createElement("div");
     body.className = "message-body";
-    body.innerHTML = sender === "ai" && doParse ? parseMarkdown(text) : escapeHtml(text);
+    body.innerHTML = (sender === "ai" && doParse !== false) ? parseMarkdown(text) : escapeHtml(text);
     div.appendChild(body);
 
     chatBox.appendChild(div);
