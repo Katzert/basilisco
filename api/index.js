@@ -140,7 +140,19 @@ IMPORTANTE:
 }
 
 app.get('/', (req, res) => {
+    const host = req.headers.host || '';
+    if (/^(chat|telechat|telegram)\./i.test(host)) {
+        return res.sendFile(path.join(__dirname, '../public/telechat/index.html'));
+    }
     res.redirect('/index.html');
+});
+
+app.get(['/telechat', '/telechat/*', '/telegram', '/telegram/*'], (req, res) => {
+    const subPath = req.params[0] || '';
+    if (subPath && (subPath.endsWith('.css') || subPath.endsWith('.js') || subPath.endsWith('.json') || subPath.endsWith('.svg') || subPath.endsWith('.png'))) {
+        return res.sendFile(path.join(__dirname, '../public/telechat', subPath));
+    }
+    res.sendFile(path.join(__dirname, '../public/telechat/index.html'));
 });
 
 app.get('/api/models', async (req, res) => {
