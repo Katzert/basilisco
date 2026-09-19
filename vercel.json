@@ -11,6 +11,16 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<subdomain>chat|telechat|telegram)\\..*"
+        }
+      ],
+      "destination": "/public/telechat/index.html"
+    },
+    {
       "source": "/:path*",
       "has": [
         {
@@ -20,10 +30,12 @@
       ],
       "destination": "/public/telechat/:path*"
     },
-    { "source": "/telechat/(.*)", "destination": "/public/telechat/$1" },
     { "source": "/telechat", "destination": "/public/telechat/index.html" },
-    { "source": "/telegram/(.*)", "destination": "/public/telechat/$1" },
+    { "source": "/telechat/", "destination": "/public/telechat/index.html" },
+    { "source": "/telechat/(.*)", "destination": "/public/telechat/$1" },
     { "source": "/telegram", "destination": "/public/telechat/index.html" },
+    { "source": "/telegram/", "destination": "/public/telechat/index.html" },
+    { "source": "/telegram/(.*)", "destination": "/public/telechat/$1" },
     { "source": "/(.*)", "destination": "/public/$1" }
   ]
 }
