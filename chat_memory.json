@@ -29,5 +29,32 @@
       "reactions": {}
     }
   ],
-  "DOUBT_TEST": []
+  "DOUBT_TEST": [],
+  "RAD-STUDIO": [
+    {
+      "id": "msg_rad_01",
+      "senderId": "usr_rad_bot",
+      "senderName": "Basilisco RAD Bot",
+      "senderColor": "#5288c1",
+      "text": "🧩 **Plantilla RAD Studio C++Builder — Recursividad (VCL / FMX)**\n\nAquí tienes la plantilla lista y explicada de las clases para Vectores, Matrices y Cadenas en C++Builder.",
+      "timestamp": 1789819200000,
+      "status": "read",
+      "attachment": null,
+      "reactions": {
+        "🔥": 2,
+        "🚀": 1
+      }
+    },
+    {
+      "id": "msg_rad_02",
+      "senderId": "usr_rad_bot",
+      "senderName": "Basilisco RAD Bot",
+      "senderColor": "#5288c1",
+      "text": "# 🧩 Plantilla Maestra RAD Studio C++Builder — Recursividad\n\nEsta guía y plantilla funcional integra directamente los ejercicios extraídos de las diapositivas de clase proyectadas en **C++Builder (Embarcadero RAD Studio / VCL)**, organizada para resolver problemas de examen con **Vectores**, **Matrices**, **Cadenas (`AnsiString`)** y **Números (`Cardinal`)**.\n\n---\n\n## 📸 1. Análisis y Extracción de los Ejercicios de Clase\n\n### Ejercicio 1: Frecuencia de Dígitos en un Vector (`SGVector`)\n- **Objetivo**: Dado un número entero positivo `x` (ej: `1254321`), contar cuántas veces aparece cada dígito (0..9) usando recursión y plasmar el recuento en un `TStringGrid`.\n- **Caso Base**: Cuando `x == 0`, inicializa el vector llamando a `LlenarCeros(V, n)`.\n- **Caso General**: Extrae el último dígito `z = x % 10`, procesa el resto con `CargarVec(V, n, x / 10)`, y en el retorno incrementa `Cells[z][0]`.\n\n```cpp\nvoid LlenarCeros(TStringGrid *V, byte n) {\n    if (n > 0) {\n        LlenarCeros(V, n - 1);\n        V->Cells[n - 1][0] = 0; // Columna n-1, Fila 0\n    }\n}\n\nvoid CargarVec(TStringGrid *V, byte n, Cardinal x) {\n    byte z;\n    if (x > 0) { // Caso General\n        z = x % 10;\n        x = x / 10;\n        CargarVec(V, n, x);\n        if (z < n) {\n            int actual = StrToIntDef(V->Cells[z][0], 0);\n            V->Cells[z][0] = IntToStr(actual + 1);\n        }\n    } else { // Caso Base\n        LlenarCeros(V, n);\n    }\n}\n```\n\n---\n\n### Ejercicio 2: Eliminar Parejas Vocal-Consonante (`AnsiString`)\n- **Objetivo**: Eliminar recursivamente de una cadena cualquier vocal que esté inmediatamente precedida/seguida de una consonante.\n- **Caso Base**: Cuando la longitud `m <= 1`, no quedan pares por evaluar.\n- **Caso General**: Si `EsVoc(x[1]) && EsCons(x[2])`, descarta el carácter (`z = \"\"`), elimina la cabeza con `x.Delete(1, 1)`, llama recursivamente y recompone `x = z + x`.\n\n```cpp\nbool EsVoc(char x) {\n    AnsiString Voc = \"AEIOUaeiou\";\n    return (Voc.Pos(x) > 0);\n}\n\nbool EsCons(char x) {\n    bool esLetra = ((x >= 'a' && x <= 'z') || (x >= 'A' && x <= 'Z'));\n    return esLetra && !EsVoc(x);\n}\n\nvoid ElimStr(AnsiString &x) {\n    AnsiString z;\n    byte m = x.Length();\n    if (m > 1) { // Caso General\n        if (EsVoc(x[1]) && EsCons(x[2])) {\n            z = \"\";\n        } else {\n            z = x[1];\n        }\n        x.Delete(1, 1);\n        ElimStr(x);\n        x = z + x;\n    }\n}\n```\n\n---\n\n### Ejercicio 3: Llenado de Matriz en Serpiente / Vaivén (`SGMatriz`)\n- **Objetivo**: Llenar una matriz `TStringGrid` de dimensiones `fa..fb` (filas) y `ca..cb` (columnas) en forma de serpiente (filas pares de derecha a izquierda, impares de izquierda a derecha).\n- **Técnica**: Doble recursión: `CargarMat` recorre las filas recursivamente, y `LlenarF` llena las celdas de cada fila individualmente.\n\n```cpp\nvoid LlenarF(TStringGrid *V, byte F, byte a, byte b, byte &k) {\n    byte n = b - a + 1;\n    if (n > 0) {\n        if (F % 2 == 0) { // Fila Par: derecha a izquierda\n            LlenarF(V, F, a, b - 1, k);\n            V->Cells[b][F] = k++;\n        } else {          // Fila Impar: izquierda a derecha\n            LlenarF(V, F, a + 1, b, k);\n            V->Cells[a][F] = k++;\n        }\n    }\n}\n\nvoid CargarMat(TStringGrid *V, byte fa, byte fb, byte ca, byte cb, byte &k) {\n    byte n = fb - fa + 1;\n    if (n > 0) {\n        CargarMat(V, fa + 1, fb, ca, cb, k);\n        LlenarF(V, fa, ca, cb, k);\n    }\n}\n```\n\n---\n\n## ⚡ 2. Convenciones Críticas de C++Builder RAD Studio\n1. **`TStringGrid` Indexación**: Siempre es `Cells[Columna][Fila]`. En vectores, la fila fija es `0` (`Cells[i][0]`).\n2. **`AnsiString` Indexación**: Basada en 1 (`x[1]` es el primer elemento, `x[x.Length()]` el último).\n3. **Conversión**: Usa `StrToIntDef(Grid->Cells[c][f], 0)` e `IntToStr(val)`.\n4. **Comandos Slash**: Escribe `/rad-recursividad` en este chat para activar la skill especializada y resolver nuevos ejercicios.",
+      "timestamp": 1789819205000,
+      "status": "read",
+      "attachment": null,
+      "reactions": {}
+    }
+  ]
 }
