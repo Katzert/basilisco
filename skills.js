@@ -635,6 +635,157 @@ const BASILISCO_SKILLS = [
   }
 ];
 
+const SKILL_CATEGORIES = [
+  "Todos",
+  "Meta & Router",
+  "UI/UX & Frontend",
+  "Código & Arquitectura",
+  "Calidad & Review",
+  "Diagnóstico & RE",
+  "Sistemas & Rendimiento",
+  "Ciencia & Investigación",
+  "Redacción & Utilidades"
+];
+
+const UTILITY_COMMANDS = [
+  { command: "/new", desc: "Nueva conversación limpia", action: "newChat" },
+  { command: "/clear", desc: "Limpiar historial actual", action: "clearChat" },
+  { command: "/export", desc: "Exportar conversación a Markdown", action: "exportMd" },
+  { command: "/export-json", desc: "Exportar conversación a JSON", action: "exportJson" },
+  { command: "/router", desc: "Activar Auto-Skill Router inteligente", action: "setRouter" },
+  { command: "/strict", desc: "Alternar modo de cumplimiento estricto", action: "toggleStrict" },
+  { command: "/noskill", desc: "Desactivar skill activa actual", action: "clearSkill" }
+];
+
+class SkillManager {
+  constructor() {
+    this.skills = typeof BASILISCO_SKILLS !== "undefined" ? BASILISCO_SKILLS : [];
+    this.activeSkillId = (typeof localStorage !== "undefined" && localStorage.getItem("basilisco.activeSkill")) || "auto-skill-router";
+    this.strictMode = (typeof localStorage !== "undefined" && localStorage.getItem("basilisco.strictSkillMode") !== "false");
+  }
+
+  getAll() {
+    return this.skills;
+  }
+
+  getById(id) {
+    if (!id) return null;
+    return this.skills.find(s => s.id === id) || null;
+  }
+
+  getBySlashCommand(cmd) {
+    if (!cmd) return null;
+    const cleanCmd = cmd.toLowerCase().trim();
+    return this.skills.find(s => s.slashCommand && s.slashCommand.toLowerCase() === cleanCmd) || null;
+  }
+
+  getActiveSkill() {
+    if (!this.activeSkillId) return null;
+    return this.getById(this.activeSkillId);
+  }
+
+  setActiveSkill(id) {
+    this.activeSkillId = id;
+    if (typeof localStorage !== "undefined") {
+      if (id) {
+        localStorage.setItem("basilisco.activeSkill", id);
+      } else {
+        localStorage.removeItem("basilisco.activeSkill");
+      }
+    }
+  }
+
+  setStrictMode(enabled) {
+    this.strictMode = !!enabled;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("basilisco.strictSkillMode", this.strictMode ? "true" : "false");
+    }
+  }
+
+  filter(query, category) {
+    let list = this.skills;
+    if (category && category !== "Todos") {
+      list = list.filter(s => s.category === category);
+    }
+    if (query && query.trim()) {
+      const q = query.toLowerCase().trim();
+      list = list.filter(s =>
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.description && s.description.toLowerCase().includes(q)) ||
+        (s.id && s.id.toLowerCase().includes(q)) ||
+        (s.slashCommand && s.slashCommand.toLowerCase().includes(q)) ||
+        (s.category && s.category.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
+  routeQuery(query) {
+    if (!query || typeof query !== "string") return this.getById("auto-skill-router");
+    const text = query.toLowerCase();
+
+    // Specific keyword heuristics
+    if (/\b(rad ?studio|c\+\+builder|recursivid|tstringgrid|ansistring|vcl|fmx|matriz.*vector|vector.*matriz)\b/i.test(text)) return this.getById("rad-studio-recursividad");
+    if (/\b(caveman|modo cavernicola|pocos tokens|ultra breve|se breve|conciso)\b/.test(text)) return this.getById("caveman");
+    if (/\b(humano|humanizar|tono de ia|anti ?ia|detector ia|redaccion natural|humanizer)\b/.test(text)) return this.getById("humanizer");
+    if (/\b(css|frontend|ui|ux|diseño|interfaz|responsive|glassmorphism|estilos)\b/.test(text)) return this.getById("impeccable") || this.getById("frontend-ui-engineering");
+    if (/\b(deslop|limpiar ui|espaciado|tipografia|alineacion)\b/.test(text)) return this.getById("baseline-ui");
+    if (/\b(lazy|perezoso|simplificar|yagni|ponytail|overengineering|menos codigo)\b/.test(text)) return this.getById("ponytail");
+    if (/\b(test|tdd|pruebas|unit test|jest|vitest|playwright)\b/.test(text)) return this.getById("test-driven-development");
+    if (/\b(debug|error|crash|bug|fallo|excepcion|solucionar error)\b/.test(text)) return this.getById("debugging-and-error-recovery");
+    if (/\b(cv|curriculum|empleo|trabajo|entrevista laboral|laboral)\b/.test(text)) return this.getById("empleo-adaptativo");
+    if (/\b(windows|optimizacion pc|latencia|ssd|ram|cpu|rendimiento pc)\b/.test(text)) return this.getById("windows-doctor");
+    if (/\b(seguridad|vulnerabilidad|hardening|xss|sql injection|cve)\b/.test(text)) return this.getById("security-and-hardening");
+    if (/\b(reversa|desensamblador|ghidra|pe|dll|hook|x32dbg|x64dbg|binario)\b/.test(text)) return this.getById("ghidra-analysis") || this.getById("x32dbg-tracing");
+    if (/\b(paper|articulo cientifico|arxiv|pubmed|investigacion|scholar)\b/.test(text)) return this.getById("paper-lookup") || this.getById("literature-review");
+    if (/\b(estadistica|anova|regresion|t-test|hipotesis|datos)\b/.test(text)) return this.getById("statistical-analysis");
+    if (/\b(api|rest|graphql|endpoint|contrato|interfaz de modulo)\b/.test(text)) return this.getById("api-and-interface-design");
+    if (/\b(code review|revision de codigo|auditar codigo|calidad)\b/.test(text)) return this.getById("code-review-and-quality");
+
+    // Default to auto-skill-router
+    return this.getById("auto-skill-router");
+  }
+
+  formatPrompt(userText) {
+    if (!userText) return userText;
+    let skill = this.getActiveSkill();
+
+    // If auto router is active, detect on the fly
+    if (skill && skill.id === "auto-skill-router") {
+      const detected = this.routeQuery(userText);
+      if (detected && detected.id !== "auto-skill-router") {
+        skill = detected;
+      }
+    }
+
+    if (!skill) return userText;
+
+    const strictNotice = this.strictMode
+      ? "\n[MODO ESTRICTO: Es OBLIGATORIO acatar fielmente cada directriz y metodología de esta skill. No omitas reglas ni des respuestas genéricas.]"
+      : "";
+
+    return `[INSTRUCCIÓN MAESTRA OBLIGATORIA DE SKILL: ${skill.name} (${skill.id})]
+Descripción: ${skill.description}
+${strictNotice}
+
+DIRECTRICES Y REGLAS OPERATIVAS:
+${skill.systemPrompt}
+[FIN DE REGLAS DE SKILL]
+
+CONSULTA DEL USUARIO:
+${userText}`;
+  }
+}
+
+const skillManager = new SkillManager();
+
+if (typeof window !== "undefined") {
+  window.SKILL_CATEGORIES = SKILL_CATEGORIES;
+  window.UTILITY_COMMANDS = UTILITY_COMMANDS;
+  window.SkillManager = SkillManager;
+  window.skillManager = skillManager;
+}
+
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { BASILISCO_SKILLS };
+  module.exports = { BASILISCO_SKILLS, SKILL_CATEGORIES, UTILITY_COMMANDS, SkillManager };
 }

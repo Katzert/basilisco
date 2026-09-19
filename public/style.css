@@ -750,6 +750,8 @@ mark.chat-highlight.current {
 .skill-label-tag {
     color: var(--text-muted);
     font-weight: 500;
+    cursor: pointer;
+    user-select: none;
 }
 .skill-name-highlight {
     font-weight: 600;
@@ -757,6 +759,19 @@ mark.chat-highlight.current {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+    transition: opacity .15s ease;
+}
+.skill-name-highlight:hover {
+    text-decoration: underline;
+    opacity: .85;
+}
+.skill-indicator-group .skill-symbol {
+    cursor: pointer;
+    transition: transform .15s ease;
+}
+.skill-indicator-group .skill-symbol:hover {
+    transform: scale(1.2);
 }
 
 .strict-switch {

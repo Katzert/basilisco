@@ -199,53 +199,75 @@ function initSkillsUI() {
     renderSkillsGrid();
 
     // Eventos de botones
-    skillsBtn.addEventListener("click", openSkillsModal);
-    changeSkillBtn.addEventListener("click", openSkillsModal);
-    closeSkillsModalBtn.addEventListener("click", () => skillsModal.close());
+    skillsBtn?.addEventListener("click", openSkillsModal);
+    changeSkillBtn?.addEventListener("click", openSkillsModal);
+    subbarSkillName?.addEventListener("click", openSkillsModal);
+    subbarSkillEmoji?.addEventListener("click", openSkillsModal);
+    document.querySelector(".skill-indicator-group .skill-label-tag")?.addEventListener("click", openSkillsModal);
+    closeSkillsModalBtn?.addEventListener("click", () => skillsModal.close());
+
+    // Cerrar modal de skills al hacer clic en el backdrop exterior
+    skillsModal?.addEventListener("click", (e) => {
+        const rect = skillsModal.getBoundingClientRect();
+        if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+            skillsModal.close();
+        }
+    });
     
-    skillSearchInput.addEventListener("input", (e) => {
+    skillSearchInput?.addEventListener("input", (e) => {
         const val = e.target.value.trim();
-        clearSkillSearchBtn.classList.toggle("hidden", !val);
+        clearSkillSearchBtn?.classList.toggle("hidden", !val);
         renderSkillsGrid();
     });
 
-    clearSkillSearchBtn.addEventListener("click", () => {
+    clearSkillSearchBtn?.addEventListener("click", () => {
         skillSearchInput.value = "";
         clearSkillSearchBtn.classList.add("hidden");
         renderSkillsGrid();
         skillSearchInput.focus();
     });
 
-    resetToRouterBtn.addEventListener("click", () => {
+    resetToRouterBtn?.addEventListener("click", () => {
         selectSkill("auto-skill-router");
         skillsModal.close();
     });
 
-    clearSkillBtn.addEventListener("click", () => {
+    clearSkillBtn?.addEventListener("click", () => {
         selectSkill("auto-skill-router");
     });
 
     // Switches de Modo Obligatorio Estricto
-    strictSkillCheckbox.checked = skillManager.strictMode;
-    modalStrictCheckbox.checked = skillManager.strictMode;
+    if (strictSkillCheckbox && window.skillManager) {
+        strictSkillCheckbox.checked = skillManager.strictMode;
+    }
+    if (modalStrictCheckbox && window.skillManager) {
+        modalStrictCheckbox.checked = skillManager.strictMode;
+    }
 
-    strictSkillCheckbox.addEventListener("change", (e) => {
+    strictSkillCheckbox?.addEventListener("change", (e) => {
         skillManager.setStrictMode(e.target.checked);
-        modalStrictCheckbox.checked = e.target.checked;
+        if (modalStrictCheckbox) modalStrictCheckbox.checked = e.target.checked;
         showToast(e.target.checked ? "Modo Obligatorio Estricto activado" : "Modo Obligatorio desactivado");
     });
 
-    modalStrictCheckbox.addEventListener("change", (e) => {
+    modalStrictCheckbox?.addEventListener("change", (e) => {
         skillManager.setStrictMode(e.target.checked);
-        strictSkillCheckbox.checked = e.target.checked;
+        if (strictSkillCheckbox) strictSkillCheckbox.checked = e.target.checked;
         showToast(e.target.checked ? "Modo Obligatorio Estricto activado" : "Modo Obligatorio desactivado");
     });
 }
 
 function openSkillsModal() {
+    if (!skillsModal) return;
     renderSkillsGrid();
-    skillsModal.showModal();
-    skillSearchInput.focus();
+    try {
+        if (!skillsModal.open) {
+            skillsModal.showModal();
+        }
+    } catch (err) {
+        skillsModal.setAttribute("open", "");
+    }
+    skillSearchInput?.focus();
 }
 
 function renderSkillsGrid() {
