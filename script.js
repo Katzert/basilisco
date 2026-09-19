@@ -38,7 +38,7 @@ const dragDropOverlay = $("dragDropOverlay");
 // Elementos QoL interactivos v3.2
 const scrollToBottomBtn = $("scrollToBottomBtn");
 const scrollUnreadDot = $("scrollUnreadDot");
-const toggleChatSearchBtn = $("toggleChatSearchBtn");
+const toggleChatSearchBtn = $("chatSearchToggleBtn") || $("toggleChatSearchBtn");
 const chatSearchBar = $("chatSearchBar");
 const chatSearchInput = $("chatSearchInput");
 const chatSearchCount = $("chatSearchCount");
@@ -127,13 +127,13 @@ function activeConv() { return conversations.find(c => c.id === activeConvId) ||
 
 /* ── Inicialización ───────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", () => {
-    initTheme();
-    initSkillsUI();
-    renderConvList();
-    loadActiveConv();
-    initQoL();
-    initCustomModelSelect();
-    initChipControls();
+    try { initCustomModelSelect(); } catch (e) { console.error("initCustomModelSelect error:", e); }
+    try { initChipControls(); } catch (e) { console.error("initChipControls error:", e); }
+    try { initTheme(); } catch (e) { console.error("initTheme error:", e); }
+    try { initSkillsUI(); } catch (e) { console.error("initSkillsUI error:", e); }
+    try { renderConvList(); } catch (e) { console.error("renderConvList error:", e); }
+    try { loadActiveConv(); } catch (e) { console.error("loadActiveConv error:", e); }
+    try { initQoL(); } catch (e) { console.error("initQoL error:", e); }
 });
 
 function initTheme() {
@@ -456,21 +456,22 @@ function scrollToBottom(force = false) {
 
 // Buscador interno en conversación activa
 function initChatSearch() {
-    toggleChatSearchBtn.addEventListener("click", () => {
-        const isHidden = chatSearchBar.classList.contains("hidden");
+    const toggleBtn = $("chatSearchToggleBtn") || $("toggleChatSearchBtn");
+    toggleBtn?.addEventListener("click", () => {
+        const isHidden = chatSearchBar?.classList.contains("hidden");
         if (isHidden) {
-            chatSearchBar.classList.remove("hidden");
-            chatSearchInput.focus();
+            chatSearchBar?.classList.remove("hidden");
+            chatSearchInput?.focus();
             runChatSearch();
         } else {
             closeChatSearch();
         }
     });
 
-    closeChatSearchBtn.addEventListener("click", closeChatSearch);
+    closeChatSearchBtn?.addEventListener("click", closeChatSearch);
 
-    chatSearchInput.addEventListener("input", runChatSearch);
-    chatSearchInput.addEventListener("keydown", (e) => {
+    chatSearchInput?.addEventListener("input", runChatSearch);
+    chatSearchInput?.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
             if (e.shiftKey) prevSearchResult();
@@ -480,8 +481,8 @@ function initChatSearch() {
         }
     });
 
-    chatSearchPrevBtn.addEventListener("click", prevSearchResult);
-    chatSearchNextBtn.addEventListener("click", nextSearchResult);
+    chatSearchPrevBtn?.addEventListener("click", prevSearchResult);
+    chatSearchNextBtn?.addEventListener("click", nextSearchResult);
 }
 
 function closeChatSearch() {
@@ -1638,6 +1639,8 @@ function updateQuota(usage) {
 /* ── Selector de Modelo Personalizado y Chips de Control ── */
 function syncCustomSelectFromValue(val) {
     if (!val) return;
+    const label = $("currentModelLabel");
+    const sub = $("currentModelSub");
     const options = document.querySelectorAll(".custom-option");
     options.forEach(opt => {
         const isMatch = opt.dataset.value === val;
@@ -1645,47 +1648,55 @@ function syncCustomSelectFromValue(val) {
         opt.setAttribute("aria-selected", isMatch ? "true" : "false");
         if (isMatch) {
             const nameEl = opt.querySelector(".option-name");
-            if (nameEl && currentModelLabel) currentModelLabel.textContent = nameEl.textContent.trim();
-            if (currentModelSub) {
+            if (nameEl && label) label.textContent = nameEl.textContent.trim();
+            if (sub) {
                 const isZen = val.startsWith("zen") || val.startsWith("opencode/");
-                currentModelSub.textContent = isZen ? "Zen" : "Google";
+                sub.textContent = isZen ? "Zen" : "Google AI";
             }
         }
     });
 }
 
 function initCustomModelSelect() {
-    if (!customModelTrigger || !customModelDropdown) return;
+    const trigger = $("customModelTrigger");
+    const dropdown = $("customModelDropdown");
+    if (!trigger || !dropdown) {
+        console.warn("customModel elements missing:", { trigger: !!trigger, dropdown: !!dropdown });
+        return;
+    }
 
     const openDropdown = () => {
-        customModelDropdown.classList.remove("hidden");
-        customModelTrigger.setAttribute("aria-expanded", "true");
+        dropdown.classList.remove("hidden");
+        trigger.setAttribute("aria-expanded", "true");
     };
 
     const closeDropdown = () => {
-        customModelDropdown.classList.add("hidden");
-        customModelTrigger.setAttribute("aria-expanded", "false");
+        dropdown.classList.add("hidden");
+        trigger.setAttribute("aria-expanded", "false");
     };
 
-    customModelTrigger.addEventListener("click", (e) => {
+    trigger.onclick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
-        const isOpen = !customModelDropdown.classList.contains("hidden");
-        if (isOpen) closeDropdown();
-        else openDropdown();
-    });
+        const isHidden = dropdown.classList.contains("hidden");
+        if (isHidden) openDropdown();
+        else closeDropdown();
+    };
 
-    const options = customModelDropdown.querySelectorAll(".custom-option");
+    const options = dropdown.querySelectorAll(".custom-option");
     options.forEach(opt => {
-        opt.addEventListener("click", (e) => {
+        opt.onclick = (e) => {
+            e.preventDefault();
             e.stopPropagation();
             const val = opt.dataset.value;
-            if (val && modelSelect) {
-                modelSelect.value = val;
-                modelSelect.dispatchEvent(new Event("change"));
+            const ms = $("modelSelect");
+            if (val && ms) {
+                ms.value = val;
+                ms.dispatchEvent(new Event("change"));
             }
             syncCustomSelectFromValue(val);
             closeDropdown();
-        });
+        };
     });
 
     document.addEventListener("click", (e) => {
@@ -1695,13 +1706,14 @@ function initCustomModelSelect() {
     });
 
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !customModelDropdown.classList.contains("hidden")) {
+        if (e.key === "Escape" && !dropdown.classList.contains("hidden")) {
             closeDropdown();
-            customModelTrigger.focus();
+            trigger.focus();
         }
     });
 
-    syncCustomSelectFromValue(modelSelect ? modelSelect.value : "flash3");
+    const ms = $("modelSelect");
+    syncCustomSelectFromValue(ms ? ms.value : "flash3");
 }
 
 function initChipControls() {
