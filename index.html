@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Basilisco — chat con agentes y modelos de Google con 69 skills obligatorias, búsqueda web, adjuntos, KaTeX y suite QoL.">
-    <meta name="theme-color" content="#0d1117">
+    <meta name="description" content="Basilisco — suite de chat para agentes y modelos Google con 69 skills obligatorias, búsqueda web, adjuntos, KaTeX y herramientas QoL.">
+    <meta name="theme-color" content="#0b0f14">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Basilisco</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>">
+    
+    <!-- Tipografía Inter y JetBrains Mono para eliminar AI-slop y garantizar números tabulares -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="style.css">
     <!-- marked + DOMPurify: renderizado Markdown seguro. KaTeX se carga bajo demanda. -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js" defer></script>
@@ -22,10 +28,11 @@
         <aside id="sidebar" class="sidebar" aria-label="Conversaciones">
             <div class="sidebar-header">
                 <button id="newChatBtn" class="new-chat-btn" title="Nueva conversación (Ctrl+Shift+O)">
-                    ＋ <span>Nueva conversación</span>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>Nueva conversación</span>
                 </button>
                 <div class="sidebar-search-box">
-                    <span class="search-icon">🔍</span>
+                    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                     <input type="text" id="convSearchInput" placeholder="Buscar chats… (Ctrl+K)" autocomplete="off">
                     <button id="clearConvSearchBtn" class="clear-search-btn hidden" title="Limpiar búsqueda">✕</button>
                 </div>
@@ -35,10 +42,11 @@
 
             <div class="sidebar-footer">
                 <button id="clearAllBtn" class="ghost-btn danger-hover" title="Borrar todas las conversaciones">
-                    🗑️ Borrar todo
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <span>Borrar todo</span>
                 </button>
                 <button id="shortcutsBtn" class="icon-ghost-btn" title="Atajos de teclado (Ctrl+/)">
-                    ⌨️
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M18 12h.01M8 16h8"/></svg>
                 </button>
             </div>
         </aside>
@@ -48,93 +56,224 @@
             <!-- Overlay visual para arrastrar y soltar archivos -->
             <div id="dragDropOverlay" class="drag-drop-overlay hidden">
                 <div class="drag-drop-card">
-                    <span class="drag-icon">📁</span>
+                    <svg class="drag-icon-svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     <h3>Suelta tus archivos aquí</h3>
-                    <p>Imágenes, PDFs, audios o vídeos se adjuntarán a tu mensaje</p>
+                    <p>Imágenes, PDFs, audios o vídeos se adjuntarán limpiamente a tu consulta</p>
                 </div>
             </div>
 
             <header class="topbar">
                 <div class="topbar-left">
-                    <button id="sidebarToggle" class="icon-btn" title="Mostrar/ocultar barra lateral">☰</button>
-                    <h1 class="logo" title="Basilisco AI">🐍 Basilisco</h1>
+                    <button id="sidebarToggle" class="icon-btn" title="Mostrar/ocultar barra lateral" aria-label="Menú lateral">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <div class="logo" title="Basilisco AI">
+                        <svg class="logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A7.003 7.003 0 0 1 5.07 11H5a1 1 0 0 1 0-2h.07A7.003 7.003 0 0 1 11 5.07V5a1 1 0 0 1 2 0v.07A7.003 7.003 0 0 1 18.93 11H19a1 1 0 0 1 0 2h-.07A7.003 7.003 0 0 1 13 16.93z"/></svg>
+                        <span>Basilisco</span>
+                    </div>
                     
-                    <!-- Botón de selector de skills en topbar -->
+                    <!-- Botón selector de skills en topbar -->
                     <button id="skillsBtn" class="skills-badge-btn" title="Explorador de 69 Skills (clic para abrir)">
-                        <span id="topSkillEmoji">⚡</span>
+                        <span id="topSkillEmoji" class="skill-symbol">⚡</span>
                         <span id="topSkillName">Auto-Skill Router</span>
-                        <span class="skills-count-tag">69 skills</span>
+                        <span class="skills-count-tag">69</span>
                     </button>
                 </div>
 
                 <div class="controls">
-                    <select id="modelSelect" title="Seleccionar modelo de lenguaje">
-                        <option value="flash3">⚡ Flash 3.6</option>
-                        <option value="thinking">🧠 Flash 3.6 Thinking</option>
-                        <option value="antigravity">🤖 Antigravity Agent</option>
-                        <option value="gemma26">🦾 Gemma 4 26B</option>
-                        <option value="gemma4">🦾 Gemma 4 31B</option>
-                        <optgroup label="OpenCode Zen (100% Gratis - Free Tier)">
-                            <option value="deepseek-v4-flash-free">🐋 DeepSeek V4 Flash (Free)</option>
-                            <option value="nemotron-3-ultra-free">🧬 Nemotron 3 Ultra (Free)</option>
-                            <option value="nemotron-3.5-lightning-free">⚡ Nemotron 3.5 Lightning (Free)</option>
-                            <option value="mimo-v2.5-free">🎭 MiMo V2.5 (Free)</option>
-                            <option value="ling-3.0-flash-fin-free">🗣️ Ling 3.0 Flash Fin (Free)</option>
-                            <option value="big-pickle">🥒 Big Pickle (Free)</option>
-                            <option value="union-alpha">🧪 Union Alpha (Free)</option>
-                        </optgroup>
-                    </select>
+                    <!-- Selector de Modelo Personalizado Premium (Sin Select Nativo Feo) -->
+                    <div class="custom-select-wrapper" id="customModelSelectWrapper">
+                        <button type="button" class="custom-select-trigger" id="customModelTrigger" aria-haspopup="listbox" aria-expanded="false" title="Cambiar modelo de IA">
+                            <span class="model-badge-dot"></span>
+                            <span class="custom-select-label" id="currentModelLabel">Flash 3.6</span>
+                            <span class="custom-select-sub" id="currentModelSub">Google AI</span>
+                            <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="custom-select-dropdown hidden" id="customModelDropdown" role="listbox">
+                            <div class="dropdown-section-header">Google AI</div>
+                            <div class="custom-option active" data-value="flash3" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Flash 3.6</span>
+                                    <span class="option-desc">Multimodal rápido • 1M tokens</span>
+                                </div>
+                                <span class="option-tag">Oficial</span>
+                            </div>
+                            <div class="custom-option" data-value="thinking" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Flash 3.6 Thinking</span>
+                                    <span class="option-desc">Razonamiento analítico profundo</span>
+                                </div>
+                                <span class="option-tag">Razonamiento</span>
+                            </div>
+                            <div class="custom-option" data-value="antigravity" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Antigravity Agent</span>
+                                    <span class="option-desc">Google DeepMind • Ingeniería senior</span>
+                                </div>
+                                <span class="option-tag">Agente</span>
+                            </div>
+                            <div class="custom-option" data-value="gemma26" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Gemma 4 26B</span>
+                                    <span class="option-desc">Open weights • Código y síntesis</span>
+                                </div>
+                                <span class="option-tag">Gemma</span>
+                            </div>
+                            <div class="custom-option" data-value="gemma4" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Gemma 4 31B</span>
+                                    <span class="option-desc">Máxima capacidad abierta</span>
+                                </div>
+                                <span class="option-tag">Gemma</span>
+                            </div>
 
-                    <label class="search-toggle" title="Activar búsqueda web en Google">
-                        <input type="checkbox" id="useSearch">
-                        <span>🌐</span>
+                            <div class="dropdown-section-header">OpenCode Zen (Free Tier)</div>
+                            <div class="custom-option" data-value="zenDeepseek" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">DeepSeek V4 Flash</span>
+                                    <span class="option-desc">Algoritmia y código de alto rendimiento</span>
+                                </div>
+                                <span class="option-tag zen">Free</span>
+                            </div>
+                            <div class="custom-option" data-value="zenNemotron" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Nemotron 3 Ultra</span>
+                                    <span class="option-desc">Razonamiento formal y alineación</span>
+                                </div>
+                                <span class="option-tag zen">Free</span>
+                            </div>
+                            <div class="custom-option" data-value="zenLaguna" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Laguna S 2.1</span>
+                                    <span class="option-desc">Sistemas distribuidos y concurrencia</span>
+                                </div>
+                                <span class="option-tag zen">Free</span>
+                            </div>
+                            <div class="custom-option" data-value="zenMimo" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">MiMo V2.5</span>
+                                    <span class="option-desc">Análisis complejo e ingeniería de software</span>
+                                </div>
+                                <span class="option-tag zen">Free</span>
+                            </div>
+                            <div class="custom-option" data-value="zenLing" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">Ling 3.0 Flash</span>
+                                    <span class="option-desc">Lógica formal y consultas ultra-rápidas</span>
+                                </div>
+                                <span class="option-tag zen">Free</span>
+                            </div>
+                            <div class="custom-option" data-value="zenNorth" role="option">
+                                <div class="option-main">
+                                    <span class="option-name">North Mini Code</span>
+                                    <span class="option-desc">Scripting ágil y utilidades CLI</span>
+                                </div>
+                                <span class="option-tag zen">Free</span>
+                            </div>
+                        </div>
+
+                        <!-- Select nativo oculto para mantener compatibilidad total con la API JS -->
+                        <select id="modelSelect" class="sr-only" aria-hidden="true" tabindex="-1">
+                            <option value="flash3">Flash 3.6</option>
+                            <option value="thinking">Flash 3.6 Thinking</option>
+                            <option value="antigravity">Antigravity Agent</option>
+                            <option value="gemma26">Gemma 4 26B</option>
+                            <option value="gemma4">Gemma 4 31B</option>
+                            <optgroup label="OpenCode Zen (Free Tier)">
+                                <option value="zenDeepseek">DeepSeek V4 Flash</option>
+                                <option value="zenNemotron">Nemotron 3 Ultra</option>
+                                <option value="zenLaguna">Laguna S 2.1</option>
+                                <option value="zenMimo">MiMo V2.5</option>
+                                <option value="zenLing">Ling 3.0 Flash</option>
+                                <option value="zenNorth">North Mini Code</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Switch de Acceso a Internet con Google Grounding -->
+                    <label class="control-chip-btn" id="searchChipLabel" title="Búsqueda web en tiempo real con Google Grounding">
+                        <input type="checkbox" id="useSearch" checked>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        <span>Internet</span>
                     </label>
+
+                    <!-- Switch de Modo Razonamiento Analítico -->
+                    <label class="control-chip-btn" id="thinkingChipLabel" title="Modo razonamiento analítico paso a paso (<think>)">
+                        <input type="checkbox" id="useThinking" checked>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+                        <span>Razonamiento</span>
+                    </label>
+
+                    <!-- Buscar dentro del chat actual (QoL) -->
+                    <button id="chatSearchToggleBtn" class="icon-btn" title="Buscar en esta conversación (Ctrl+F)" aria-label="Buscar en conversación">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    </button>
 
                     <!-- Menú de exportación QoL -->
                     <div class="dropdown-container">
-                        <button id="exportMenuBtn" class="icon-btn" title="Exportar conversación (Markdown o JSON)">📥</button>
+                        <button id="exportMenuBtn" class="icon-btn" title="Exportar conversación (Markdown o JSON)" aria-label="Exportar chat">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </button>
                         <div id="exportDropdown" class="dropdown-menu hidden">
-                            <button id="exportMdBtn" class="dropdown-item">📄 Descargar Markdown (.md)</button>
-                            <button id="exportJsonBtn" class="dropdown-item">📦 Descargar JSON (.json)</button>
+                            <button id="exportMdBtn" class="dropdown-item">Descargar Markdown (.md)</button>
+                            <button id="exportJsonBtn" class="dropdown-item">Descargar JSON (.json)</button>
                         </div>
                     </div>
 
-                    <button id="themeBtn" class="icon-btn" title="Cambiar tema claro/oscuro">🌙</button>
+                    <button id="themeBtn" class="icon-btn" title="Cambiar tema claro/oscuro" aria-label="Cambiar tema">
+                        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </button>
                 </div>
             </header>
 
-            <!-- Medidor de Cuota -->
+            <!-- Barra de búsqueda en conversación (QoL) -->
+            <div id="chatSearchBar" class="chat-search-bar hidden">
+                <svg class="search-bar-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="chatSearchInput" placeholder="Buscar texto en este chat… (Enter siguiente)" autocomplete="off">
+                <span id="chatSearchCount" class="chat-search-count">0/0</span>
+                <button id="chatSearchPrevBtn" class="search-nav-btn" title="Anterior (Shift+Enter)">▲</button>
+                <button id="chatSearchNextBtn" class="search-nav-btn" title="Siguiente (Enter)">▼</button>
+                <button id="closeChatSearchBtn" class="search-nav-btn" title="Cerrar búsqueda (Esc)">✕</button>
+            </div>
+
+            <!-- Medidor de Cuota con números tabulares -->
             <div id="quotaMeter" class="quota-meter hidden" aria-live="polite">
-                <span>RPM <b id="valRPM">0/5</b></span>
-                <span>TPM <b id="valTPM">0/250K</b></span>
-                <span>RPD <b id="valRPD">0/20</b></span>
-                <span id="tknSpan" class="hidden">TKN <b id="valTKN">0/20K</b></span>
+                <span title="Peticiones por minuto (Requests Per Minute)">RPM <b id="valRPM">0/5</b></span>
+                <span title="Tokens por minuto (Tokens Per Minute)">TPM <b id="valTPM">0/250K</b></span>
+                <span title="Peticiones por día (Requests Per Day)">RPD <b id="valRPD">0/20</b></span>
+                <span id="tknSpan" class="hidden" title="Tokens totales consumidos">TKN <b id="valTKN">0/20K</b></span>
             </div>
 
             <!-- Subbarra de Skill Activa y Herramientas Rápidas QoL -->
             <div id="activeSkillBar" class="active-skill-bar">
                 <div class="skill-indicator-group">
                     <span class="skill-label-tag">Skill:</span>
-                    <span id="subbarSkillEmoji">⚡</span>
+                    <span id="subbarSkillEmoji" class="skill-symbol">⚡</span>
                     <span id="subbarSkillName" class="skill-name-highlight">Auto-Skill Router</span>
-                    <label class="strict-switch" title="Forzar al modelo a acatar estrictamente todas las reglas de la skill">
+                    <label class="strict-switch" title="Forzar al modelo a acatar estrictamente todas las reglas y protocolos de la skill">
                         <input type="checkbox" id="strictSkillCheckbox" checked>
                         <span class="switch-slider"></span>
-                        <span class="switch-label">Modo Obligatorio 🔒</span>
+                        <span class="switch-label">Modo Obligatorio</span>
                     </label>
                 </div>
                 <div class="quick-tools-group">
-                    <button id="changeSkillBtn" class="ghost-chip-btn" title="Cambiar o buscar entre las 69 skills">Cambiar</button>
+                    <button id="changeSkillBtn" class="ghost-chip-btn" title="Explorar y cambiar entre las 69 skills">Cambiar</button>
                     <button id="clearSkillBtn" class="ghost-chip-btn text-dim hidden" title="Volver a Auto-Skill Router">Auto</button>
                     <span class="v-divider"></span>
-                    <button id="toggleAllThoughtsBtn" class="ghost-chip-btn" title="Colapsar o expandir bloques de pensamiento">🧠 Razonamiento</button>
+                    <button id="toggleAllThoughtsBtn" class="ghost-chip-btn" title="Colapsar o expandir bloques de pensamiento">Razonamiento</button>
                 </div>
             </div>
 
             <!-- Caja de Chat principal -->
             <main id="chatBox" class="chatbox" aria-live="polite">
-                <div class="message system" data-index="-1">🐍 Conectado. Escribe un mensaje o escribe <code>/</code> para ver skills y comandos.</div>
+                <div class="message system" data-index="-1">Conectado. Escribe un mensaje o escribe <code>/</code> para ver skills y comandos.</div>
             </main>
+
+            <!-- Botón flotante para bajar al final (QoL Scroll) -->
+            <button id="scrollToBottomBtn" class="scroll-bottom-btn hidden" title="Ir al final de la conversación" aria-label="Ir al final">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                <span id="scrollUnreadDot" class="unread-dot hidden"></span>
+            </button>
 
             <!-- Previsualización de archivos adjuntos -->
             <div id="attachmentsPreview" class="attachments"></div>
@@ -148,23 +287,29 @@
             <!-- Área de Entrada de Mensaje con QoL -->
             <div class="input-container">
                 <div class="input-area" id="inputArea">
-                    <label class="file-label" title="Adjuntar archivo o imagen (o arrastra al chat / pega con Ctrl+V)">
-                        📎
+                    <label class="file-label" title="Adjuntar archivo (arrastra o usa Ctrl+V para pegar capturas)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                         <input type="file" id="fileInput" multiple accept="image/*, audio/*, video/*, application/pdf">
                     </label>
 
-                    <!-- Botón de dictado por voz (Web Speech API) -->
-                    <button id="micBtn" class="mic-btn" title="Dictado por voz (Speech-to-Text)">🎙️</button>
+                    <!-- Botón de dictado por voz -->
+                    <button id="micBtn" class="mic-btn" title="Dictado por voz (Speech-to-Text)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
 
                     <textarea id="messageInput" placeholder="Escribe tu mensaje o usa '/' para skills… (Shift+Enter para salto de línea)" rows="1"></textarea>
 
-                    <button id="sendBtn" class="send-btn" title="Enviar mensaje (Enter)">➤</button>
-                    <button id="stopBtn" class="stop-btn hidden" title="Detener generación (Esc)">■</button>
+                    <button id="sendBtn" class="send-btn" title="Enviar mensaje (Enter)" aria-label="Enviar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                    <button id="stopBtn" class="stop-btn hidden" title="Detener generación (Esc)" aria-label="Detener">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                    </button>
                 </div>
 
                 <div class="input-meta-bar">
                     <span id="charCounter" class="char-counter">0 car. • 0 pal.</span>
-                    <span class="input-tips">Tip: pega capturas con <b>Ctrl+V</b> o arrastra archivos aquí</span>
+                    <span class="input-tips">Pega capturas con <b>Ctrl+V</b> o arrastra archivos aquí</span>
                 </div>
             </div>
         </div>
@@ -175,7 +320,7 @@
         <div class="skills-modal-content">
             <div class="skills-modal-header">
                 <div class="skills-header-titles">
-                    <h2>✨ Catálogo Completo de 69 Skills</h2>
+                    <h2>Catálogo de 69 Skills Antigravity</h2>
                     <p>Selecciona una skill especializada para forzar al modelo a aplicar sus reglas y metodologías.</p>
                 </div>
                 <button id="closeSkillsModalBtn" class="modal-close-btn" title="Cerrar (Esc)">✕</button>
@@ -184,7 +329,7 @@
             <!-- Barra de búsqueda y switch de modo estricto -->
             <div class="skills-modal-toolbar">
                 <div class="skill-search-wrapper">
-                    <span class="search-icon">🔍</span>
+                    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                     <input type="text" id="skillSearchInput" placeholder="Buscar skill por nombre, comando (/), regla o categoría…" autocomplete="off">
                     <button id="clearSkillSearchBtn" class="clear-search-btn hidden">✕</button>
                 </div>
@@ -213,25 +358,56 @@
     <dialog id="shortcutsModal" class="info-modal">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>⌨️ Atajos de Teclado</h3>
+                <h3>Atajos de Teclado</h3>
                 <button id="closeShortcutsModalBtn" class="modal-close-btn">✕</button>
             </div>
             <div class="shortcuts-list">
                 <div class="shortcut-item"><kbd>Enter</kbd><span>Enviar mensaje</span></div>
-                <div class="shortcut-item"><kbd>Shift + Enter</kbd><span>Salto de línea en el texto</span></div>
-                <div class="shortcut-item"><kbd>/</kbd><span>Abrir menú de comandos y 69 skills</span></div>
-                <div class="shortcut-item"><kbd>Ctrl + K</kbd><span>Buscar en conversaciones</span></div>
+                <div class="shortcut-item"><kbd>Shift + Enter</kbd><span>Salto de línea</span></div>
+                <div class="shortcut-item"><kbd>/</kbd><span>Comandos y 69 skills</span></div>
+                <div class="shortcut-item"><kbd>Ctrl + K</kbd><span>Buscar conversaciones</span></div>
+                <div class="shortcut-item"><kbd>Ctrl + F</kbd><span>Buscar en este chat</span></div>
                 <div class="shortcut-item"><kbd>Ctrl + Shift + O</kbd><span>Nueva conversación</span></div>
-                <div class="shortcut-item"><kbd>Ctrl + V</kbd><span>Pegar imagen desde el portapapeles</span></div>
+                <div class="shortcut-item"><kbd>Ctrl + V</kbd><span>Pegar imagen del portapapeles</span></div>
                 <div class="shortcut-item"><kbd>Esc</kbd><span>Detener generación / Cerrar modales</span></div>
             </div>
         </div>
     </dialog>
 
+    <!-- Modal Accesible de Confirmación (QoL) -->
+    <dialog id="confirmModal" class="info-modal confirm-dialog">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="confirmModalTitle">Confirmar acción</h3>
+                <button type="button" id="closeConfirmModalBtn" class="modal-close-btn" title="Cerrar">✕</button>
+            </div>
+            <p id="confirmModalText" class="confirm-modal-text">¿Estás seguro de realizar esta acción?</p>
+            <div class="modal-actions">
+                <button type="button" id="cancelConfirmBtn" class="ghost-btn">Cancelar</button>
+                <button type="button" id="acceptConfirmBtn" class="send-btn danger-btn">Confirmar</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Modal Accesible de Renombrado (QoL) -->
+    <dialog id="renameModal" class="info-modal rename-dialog">
+        <form method="dialog" id="renameForm" class="modal-card">
+            <div class="modal-header">
+                <h3>Renombrar conversación</h3>
+                <button type="button" id="closeRenameModalBtn" class="modal-close-btn" title="Cerrar">✕</button>
+            </div>
+            <input type="text" id="renameInput" class="rename-input-field" maxlength="80" autocomplete="off" required>
+            <div class="modal-actions">
+                <button type="button" id="cancelRenameBtn" class="ghost-btn">Cancelar</button>
+                <button type="submit" id="saveRenameBtn" class="send-btn">Guardar</button>
+            </div>
+        </form>
+    </dialog>
+
     <!-- Modal PIN (Autenticación) -->
     <dialog id="pinModal" class="pin-modal">
         <form method="dialog" id="pinForm">
-            <h2>🔒 Acceso restringido</h2>
+            <h2>Acceso restringido</h2>
             <p>Introduce el PIN para usar Basilisco.</p>
             <input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="PIN" required>
             <div class="pin-actions">

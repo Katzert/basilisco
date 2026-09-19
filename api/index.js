@@ -61,85 +61,80 @@ IMPORTANTE:
 
 // Cascade fallback matrix with exact verified live models from Google Generative Language API
 function getModelCandidates(requestedModel) {
-    switch (requestedModel) {
+    const m = (requestedModel || '').toLowerCase();
+    switch (m) {
+        case 'flash':
         case 'flash3':
-            return ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
+            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
         case 'thinking':
-            return ['gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-flash-latest', 'gemini-2.5-flash'];
-        case 'gemini31':
-            return ['gemini-3.1-pro-preview', 'gemini-pro-latest', 'gemini-2.5-pro', 'gemini-3.6-flash'];
-        case 'gemma26':
-            return ['gemma-4-26b-a4b-it', 'gemma-4-31b-it', 'gemini-3.6-flash'];
-        case 'gemma4':
-            return ['gemma-4-31b-it', 'gemma-4-26b-a4b-it', 'gemini-3.6-flash'];
+            return ['gemini-2.0-flash-thinking-exp-01-21', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
         case 'antigravity':
-            return ['antigravity-preview-09-2026', 'antigravity-preview-05-2026', 'gemini-3.6-flash'];
-        // Modelos OpenCode Zen (100% Oficiales y Gratuitos - Free Tier)
-        case 'deepseek-v4-flash-free':
-        case 'zenDeepseek':
-        case 'nemotron-3-ultra-free':
-        case 'zenNemotron':
-        case 'nemotron-3.5-lightning-free':
-        case 'mimo-v2.5-free':
-        case 'zenMimo':
-        case 'ling-3.0-flash-fin-free':
-        case 'zenLing':
-        case 'big-pickle':
-        case 'union-alpha':
-        case 'zenLaguna':
-        case 'zenNorth':
-            return ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+        case 'agent':
+            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        case 'gemma26':
+        case 'gemma-26b':
+        case 'gemma4':
+        case 'gemma-31b':
+            return ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+        case 'zendeepseek':
+        case 'zennemotron':
+        case 'zenlaguna':
+        case 'zenmimo':
+        case 'zenling':
+        case 'zennorth':
+            return ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
         default:
-            return ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
     }
 }
 
-function getSystemInstruction(requestedModel, modelName) {
-    if (requestedModel === 'antigravity') {
-        return `Eres el Agente Antigravity (Google DeepMind).
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Actúa como ingeniero senior de software y sistemas, priorizando soluciones elegantes, verificables, basadas en evidencia y libres de suposiciones no verificadas.`;
+function getSystemInstruction(requestedModel, modelName, isThinking = false, hasInternet = false) {
+    let basePersona = `Eres un asistente experto de ingeniería de software, algoritmia y análisis técnico.`;
+
+    const m = (requestedModel || '').toLowerCase();
+    if (m === 'antigravity' || m === 'agent') {
+        basePersona = `Eres el Agente Antigravity (Google DeepMind). Actúa como ingeniero senior de software y sistemas, priorizando soluciones elegantes, verificables, basadas en evidencia y libres de suposiciones no verificadas.`;
+    } else if (m === 'gemma26' || m.includes('26b')) {
+        basePersona = `Eres Gemma 4 26B (Google DeepMind). Eres conciso, directo y especializado en programación, análisis de sintaxis y arquitectura técnica.`;
+    } else if (m === 'gemma4' || m.includes('31b')) {
+        basePersona = `Eres Gemma 4 31B (Google DeepMind). Modelo abierto de alta capacidad deductiva, análisis formal y síntesis de patrones avanzados.`;
+    } else if (m === 'zendeepseek' || m.includes('deepseek')) {
+        basePersona = `Eres DeepSeek V4 Flash (OpenCode Zen Free Tier) en Basilisco. Especializado en algoritmia de alto rendimiento, análisis formal de código, optimización extrema y arquitectura limpia.`;
+    } else if (m === 'zennemotron' || m.includes('nemotron')) {
+        basePersona = `Eres Nemotron 3 Ultra (OpenCode Zen Free Tier) en Basilisco. Especializado en razonamiento formal, alineación de modelos, verificación de contratos y explicaciones técnicas de alto nivel.`;
+    } else if (m === 'zenlaguna' || m.includes('laguna')) {
+        basePersona = `Eres Laguna S 2.1 (OpenCode Zen Free Tier) en Basilisco. Especializado en ingeniería de sistemas distribuidos, concurrencia, resiliencia y síntesis de patrones modernos.`;
+    } else if (m === 'zenmimo' || m.includes('mimo')) {
+        basePersona = `Eres MiMo V2.5 (OpenCode Zen Free Tier) en Basilisco. Especializado en razonamiento analítico, resolución de problemas complejos e ingeniería de software.`;
+    } else if (m === 'zenling' || m.includes('ling')) {
+        basePersona = `Eres Ling 3.0 Flash (OpenCode Zen Free Tier) en Basilisco. Especializado en lógica formal, análisis cuantitativo, procesamiento rápido de consultas y estructuras de datos.`;
+    } else if (m === 'zennorth' || m.includes('north') || m.includes('pickle') || m.includes('union')) {
+        basePersona = `Eres North Mini Code (OpenCode Zen Free Tier) en Basilisco. Especializado en scripting ágil, refactorizaciones concisas, utilidades CLI y código minimalista.`;
+    } else if (m === 'thinking') {
+        basePersona = `Eres un modelo avanzado de pensamiento y razonamiento analítico profundo paso a paso.`;
     }
-    // Personas para los Modelos Gratuitos de OpenCode Zen (Free Tier)
-    if (requestedModel === 'deepseek-v4-flash-free' || requestedModel === 'zenDeepseek') {
-        return `Eres DeepSeek V4 Flash (OpenCode Zen Free Tier) en Basilisco.
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en algoritmia de alto rendimiento, análisis formal de código, optimización extrema y arquitectura limpia.`;
+
+    if (hasInternet) {
+        basePersona += `\n\nACCESO A INTERNET ACTIVO EN TIEMPO REAL: Cuentas con la herramienta Google Search conectada. Siempre que el usuario pregunte por eventos recientes, noticias de hoy, precios, clima, personas, librerías, documentación o datos fácticos, consulta la web y responde con información actualizada en tiempo real citando las fuentes consultadas.`;
     }
-    if (requestedModel === 'nemotron-3-ultra-free' || requestedModel === 'zenNemotron') {
-        return `Eres Nemotron 3 Ultra (OpenCode Zen Free Tier) en Basilisco.
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en razonamiento formal, alineación de modelos, verificación de contratos y explicaciones técnicas de alto nivel.`;
+
+    if (isThinking || m === 'thinking') {
+        return `${basePersona}
+
+REGLA ESTRICTA Y OBLIGATORIA: Debes pensar y razonar minuciosamente paso a paso ANTES de responder.
+Para pensar, DEBES usar este formato exacto:
+<think>
+(Escribe aquí tu monólogo interno, deducción analítica y validación de hipótesis)
+</think>
+(Escribe aquí tu respuesta final al usuario)
+
+IMPORTANTE:
+1. NO escribas NADA antes de <think>.
+2. Todo tu proceso de pensamiento debe estar estrictamente dentro de <think>...</think>.
+3. Tras cerrar </think>, escribe tu respuesta final de forma clara y directa.`;
     }
-    if (requestedModel === 'nemotron-3.5-lightning-free') {
-        return `Eres Nemotron 3.5 Lightning (OpenCode Zen Free Tier) en Basilisco.
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en generación ultra-rápida, síntesis de código, refactorización y depuración ágil.`;
-    }
-    if (requestedModel === 'mimo-v2.5-free' || requestedModel === 'zenMimo') {
-        return `Eres MiMo V2.5 (OpenCode Zen Free Tier) en Basilisco.
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en razonamiento analítico, resolución de problemas complejos e ingeniería de software.`;
-    }
-    if (requestedModel === 'ling-3.0-flash-fin-free' || requestedModel === 'zenLing') {
-        return `Eres Ling 3.0 Flash Fin (OpenCode Zen Free Tier) en Basilisco.
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en lógica formal, análisis cuantitativo, procesamiento rápido de consultas y estructuras de datos.`;
-    }
-    if (requestedModel === 'big-pickle') {
-        return `Eres Big Pickle (OpenCode Zen Free Tier) en Basilisco.
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en Python avanzado, ingeniería de datos, scripts de automatización y optimización de pipelines.`;
-    }
-    if (requestedModel === 'union-alpha') {
-        return `Eres Union Alpha (OpenCode Zen Free Tier) en Basilisco.
-REGLA ESTRICTA: Razona paso a paso en <think>...</think> antes de responder.
-Especializado en arquitecturas experimentales, diseño de compiladores y optimizaciones de bajo nivel.`;
-    }
-    if (modelName.includes('gemma')) {
-        return systemInstruction + "\n\nAsegúrate de SIEMPRE usar <think> antes de responder, sin excepciones.";
-    }
-    return systemInstruction;
+
+    return basePersona;
 }
 
 app.get('/', (req, res) => {
@@ -161,7 +156,9 @@ app.get('/api/models', async (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { message, interaction_id, model, use_search, truncate_history_at_index, media_parts } = req.body;
+        const { message, interaction_id, model, use_search, use_thinking, truncate_history_at_index, media_parts } = req.body;
+        const shouldThink = Boolean(use_thinking === true || use_thinking === 'true' || model === 'thinking');
+        const hasInternet = use_search !== false && use_search !== 'false';
         
         let currentSessionId = interaction_id;
         let sanitizedHistory = [];
@@ -174,14 +171,12 @@ app.post('/api/chat', async (req, res) => {
                 historyRaw = historyRaw.slice(0, truncate_history_at_index);
             }
 
-            // Strict sanitization: Gemini SDK fails silently or throws if hidden properties exist
+            // Strict sanitization: Gemini SDK fails silently or throws if invalid properties exist
             sanitizedHistory = historyRaw.map(msg => ({
                 role: msg.role === 'model' ? 'model' : 'user',
                 parts: msg.parts.map(part => {
                     if (part.text) return { text: part.text };
                     if (part.inlineData) return { inlineData: { mimeType: part.inlineData.mimeType, data: part.inlineData.data } };
-                    if (part.functionCall) return { functionCall: part.functionCall };
-                    if (part.functionResponse) return { functionResponse: part.functionResponse };
                     return { text: "" };
                 })
             }));
@@ -204,48 +199,76 @@ app.post('/api/chat', async (req, res) => {
 
         for (const candidate of candidates) {
             try {
-                const finalInstruction = getSystemInstruction(model, candidate);
+                const finalInstruction = getSystemInstruction(model, candidate, shouldThink, hasInternet);
                 const modelConfig = {
                     model: candidate,
                     systemInstruction: finalInstruction,
                 };
 
-                if (use_search) {
+                if (hasInternet) {
                     modelConfig.tools = [{ googleSearch: {} }];
                 }
 
-                const generativeModel = genAI.getGenerativeModel(modelConfig);
-                const chatSession = generativeModel.startChat({ history: sanitizedHistory });
+                if (shouldThink && (candidate.includes('thinking') || candidate.includes('2.5'))) {
+                    modelConfig.generationConfig = {
+                        thinkingConfig: {
+                            includeThoughts: true,
+                            thinkingBudget: 2048
+                        }
+                    };
+                }
 
-                console.log(`[ATTEMPT] Model: ${candidate} (requested: ${model})`);
+                let generativeModel;
+                try {
+                    generativeModel = genAI.getGenerativeModel(modelConfig);
+                } catch (cfgErr) {
+                    delete modelConfig.generationConfig;
+                    generativeModel = genAI.getGenerativeModel(modelConfig);
+                }
+
+                let chatSession = generativeModel.startChat({ history: sanitizedHistory });
+
+                console.log(`[ATTEMPT] Model: ${candidate} (requested: ${model}, thinking: ${shouldThink}, internet: ${hasInternet})`);
                 
-                // Timeout per candidate (6s for slow/cold-start models, 12s otherwise) to guarantee Vercel response
-                const timeoutLimit = candidate.includes('gemma') ? 6000 : 12000;
+                // Timeout per candidate to guarantee snappy response
+                const timeoutLimit = 12000;
                 const timeoutPromise = new Promise((_, reject) => 
                     setTimeout(() => reject(new Error(`Timeout de ${timeoutLimit}ms superado en ${candidate}`)), timeoutLimit)
                 );
 
                 const sendPromise = (async () => {
-                    const result = await chatSession.sendMessage(parts);
-                    return await result.response;
+                    try {
+                        const result = await chatSession.sendMessage(parts);
+                        return await result.response;
+                    } catch (sendErr) {
+                        console.warn(`[RETRY CONFIG] ${candidate}: ${sendErr.message}`);
+                        // First retry: drop thinkingConfig if present, keeping internet search tools!
+                        if (modelConfig.generationConfig) {
+                            try {
+                                delete modelConfig.generationConfig;
+                                const retryModel = genAI.getGenerativeModel(modelConfig);
+                                const retrySession = retryModel.startChat({ history: sanitizedHistory });
+                                const result = await retrySession.sendMessage(parts);
+                                return await result.response;
+                            } catch (e1) {
+                                console.warn(`[RETRY 1 FAILED] ${candidate}: ${e1.message}`);
+                            }
+                        }
+                        // Second retry: if candidate has no tool support at all, fallback without tools
+                        if (modelConfig.tools) {
+                            delete modelConfig.tools;
+                            const retryModel = genAI.getGenerativeModel(modelConfig);
+                            const retrySession = retryModel.startChat({ history: sanitizedHistory });
+                            const result = await retrySession.sendMessage(parts);
+                            return await result.response;
+                        }
+                        throw sendErr;
+                    }
                 })();
 
                 const response = await Promise.race([sendPromise, timeoutPromise]);
 
-                let candidateResponse = response;
-                let functionCalls = response.functionCalls();
-                if (functionCalls && functionCalls.length > 0 && functionCalls[0].name === 'googleSearch') {
-                    const functionResponses = [{
-                        functionResponse: {
-                            name: 'googleSearch',
-                            response: { content: "Search executed by Google." }
-                        }
-                    }];
-                    const result2 = await chatSession.sendMessage(functionResponses);
-                    candidateResponse = await result2.response;
-                }
-
-                finalModelResponse = candidateResponse;
+                finalModelResponse = response;
                 successfulModel = candidate;
                 console.log(`[SUCCESS] Model: ${candidate} succeeded`);
                 break;
@@ -295,24 +318,66 @@ app.post('/api/chat', async (req, res) => {
         
         sanitizedHistory.push({ role: 'user', parts: userParts });
 
-        const modelParts = [];
+        // Extract native thoughts and main text
+        let nativeThoughts = "";
+        let mainText = "";
+
         try {
-            const responseText = finalModelResponse.text();
-            if (responseText) modelParts.push({ text: responseText });
-        } catch(e) {}
-        
-        let fCalls = finalModelResponse.functionCalls();
-        if (fCalls && fCalls.length > 0) {
-            fCalls.forEach(fc => modelParts.push({ functionCall: fc }));
+            const candidateObj = finalModelResponse.candidates?.[0];
+            if (candidateObj?.content?.parts) {
+                for (const part of candidateObj.content.parts) {
+                    if (part.thought) {
+                        nativeThoughts += (part.text || "") + "\n";
+                    } else if (part.text) {
+                        mainText += part.text || "";
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("Error parsing candidate parts for thoughts:", e);
         }
-        
-        if (fCalls && fCalls.length > 0 && fCalls[0].name === 'googleSearch') {
-            sanitizedHistory.push({ role: 'model', parts: modelParts });
-            sanitizedHistory.push({ role: 'user', parts: [{ functionResponse: { name: 'googleSearch', response: { content: "Search executed by Google." } } }] });
-            sanitizedHistory.push({ role: 'model', parts: [{ text: finalModelResponse.text() }] });
-        } else {
-            sanitizedHistory.push({ role: 'model', parts: modelParts });
+
+        if (!mainText && !nativeThoughts) {
+            try {
+                mainText = finalModelResponse.text() || "";
+            } catch (e) {}
         }
+
+        let formattedOutput = mainText;
+
+        if (nativeThoughts.trim()) {
+            if (!formattedOutput.includes('<think>')) {
+                formattedOutput = `<think>\n${nativeThoughts.trim()}\n</think>\n\n${formattedOutput.trim()}`;
+            }
+        }
+
+        // Extract grounding citations (web sources) from Google Search
+        const candidateObj = finalModelResponse.candidates?.[0];
+        const groundingMeta = candidateObj?.groundingMetadata;
+        if (groundingMeta?.groundingChunks && Array.isArray(groundingMeta.groundingChunks)) {
+            const webSources = [];
+            const seenUris = new Set();
+            groundingMeta.groundingChunks.forEach(chunk => {
+                if (chunk.web?.uri && !seenUris.has(chunk.web.uri)) {
+                    seenUris.add(chunk.web.uri);
+                    webSources.push({
+                        title: chunk.web.title || chunk.web.uri,
+                        uri: chunk.web.uri
+                    });
+                }
+            });
+
+            if (webSources.length > 0) {
+                const sourcesMd = webSources
+                    .slice(0, 6)
+                    .map(s => `- [${s.title}](${s.uri})`)
+                    .join("\n");
+                formattedOutput += `\n\n---\n**Fuentes web consultadas:**\n${sourcesMd}`;
+            }
+        }
+
+        // Save clean response in conversation history
+        sanitizedHistory.push({ role: 'model', parts: [{ text: formattedOutput }] });
 
         const newHistory = sanitizedHistory;
         const newMessageIndex = newHistory.length >= 2 ? newHistory.length - 2 : 0;
@@ -327,7 +392,7 @@ app.post('/api/chat', async (req, res) => {
         let maxRpd = 1500;
         let reportedModel = successfulModel;
 
-        if (model && (model.includes('free') || model.includes('pickle') || model.includes('union') || model.startsWith('zen'))) {
+        if (model && (model.startsWith('zen') || model.includes('free') || model.includes('pickle') || model.includes('union'))) {
             // OpenCode Zen 100% Free Tier specs
             maxRpm = 30;
             maxTpm = '100K';
@@ -344,7 +409,7 @@ app.post('/api/chat', async (req, res) => {
         }
 
         res.json({
-            text: finalModelResponse.text(),
+            text: formattedOutput,
             interaction_id: currentSessionId,
             message_index: newMessageIndex,
             active_model: reportedModel,
