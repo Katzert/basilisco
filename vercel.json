@@ -4,8 +4,26 @@
       "maxDuration": 30
     }
   },
+  "redirects": [
+    { "source": "/telechat", "destination": "/telechat/", "permanent": true },
+    { "source": "/telegram", "destination": "/telegram/", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<subdomain>chat|telechat|telegram)\\..*"
+        }
+      ],
+      "destination": "/public/telechat/:path*"
+    },
+    { "source": "/telechat/(.*)", "destination": "/public/telechat/$1" },
+    { "source": "/telechat", "destination": "/public/telechat/index.html" },
+    { "source": "/telegram/(.*)", "destination": "/public/telechat/$1" },
+    { "source": "/telegram", "destination": "/public/telechat/index.html" },
     { "source": "/(.*)", "destination": "/public/$1" }
   ]
 }

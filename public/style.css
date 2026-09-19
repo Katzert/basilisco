@@ -594,6 +594,21 @@ input, select, textarea {
     font-weight: 600;
 }
 
+.telechat-chip-btn {
+    text-decoration: none;
+    background: rgba(82, 136, 193, 0.08);
+    border-color: rgba(82, 136, 193, 0.25);
+    color: var(--text);
+}
+
+.telechat-chip-btn:hover {
+    background: rgba(82, 136, 193, 0.18);
+    border-color: #5288c1;
+    color: #5288c1;
+    transform: translateY(-1px);
+}
+
+
 .sr-only {
     position: absolute;
     width: 1px;

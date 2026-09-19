@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TeleChat — Chat P2P y Nube por Código</title>
+  <meta name="description" content="Chat en tiempo real completo y liviano estilo Telegram con sincronización por código, soporte de archivos, notas de voz y persistencia.">
+  
+  <!-- Favicon SVG -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235288c1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z'/%3E%3C/svg%3E">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- PeerJS Cloud Library for Zero-Config Realtime WebRTC P2P DataChannels (Deferred non-blocking) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Drag & Drop Global Overlay -->
+  <div id="drag-drop-overlay" class="drag-drop-overlay hidden" aria-hidden="true">
+    <div class="drag-drop-content">
+      <svg class="icon-drop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+      <h3>Suelta tus archivos aquí</h3>
+      <p>Imágenes, documentos, audios o código</p>
+    </div>
+  </div>
+
+  <div class="app-wrapper">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <button id="menu-btn" class="icon-btn" title="Menú principal" aria-label="Abrir menú">
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="search-input" placeholder="Buscar mensajes..." aria-label="Buscar mensajes">
+        </div>
+      </div>
+
+      <!-- Quick Room Action Bar -->
+      <div class="room-action-bar">
+        <button id="new-room-btn" class="btn btn-sm btn-primary">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>Nueva Sala</span>
+        </button>
+        <button id="join-room-btn" class="btn btn-sm btn-secondary">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <span>Unirse con Código</span>
+        </button>
+      </div>
+
+      <!-- Chats List -->
+      <div class="chat-list" id="chat-list" role="list">
+        <!-- Active Room Item (Telegram Style) -->
+        <div class="chat-item active" id="active-chat-item" role="listitem">
+          <div class="avatar-wrapper">
+            <div class="avatar" id="sidebar-room-avatar">TC</div>
+            <span class="status-dot" id="sidebar-room-status-dot"></span>
+          </div>
+          <div class="chat-info">
+            <div class="chat-title-row">
+              <span class="chat-title" id="sidebar-room-title">Sala Principal</span>
+              <span class="chat-time" id="sidebar-room-time">Ahora</span>
+            </div>
+            <div class="chat-subtitle-row">
+              <span class="chat-snippet" id="sidebar-room-snippet">Conectado y listo para chatear</span>
+              <span class="unread-badge hidden" id="sidebar-unread-badge">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Self Profile Quick Bar -->
+      <div class="user-profile-bar">
+        <div class="avatar user-avatar-btn" id="my-avatar-preview" title="Editar mi perfil">
+          YO
+        </div>
+        <div class="user-details" id="open-profile-btn" title="Configurar nombre y apariencia">
+          <div class="user-name" id="my-display-name">Usuario</div>
+          <div class="user-status-text">
+            <span class="online-indicator"></span>
+            <span id="my-status-label">En línea</span>
+          </div>
+        </div>
+        <button id="theme-toggle-btn" class="icon-btn-subtle" title="Cambiar tema claro/oscuro">
+          <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CHAT VIEW -->
+    <main class="chat-viewport">
+      <!-- Chat Header -->
+      <header class="chat-header">
+        <button id="sidebar-toggle-btn" class="icon-btn mobile-only" title="Mostrar chats">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </button>
+        
+        <div class="chat-header-profile" id="header-profile-click">
+          <div class="avatar" id="header-avatar">TC</div>
+          <div class="header-meta">
+            <div class="header-title" id="header-room-name">Sala: TELE-1234</div>
+            <div class="header-status" id="header-status-indicator">
+              <span class="status-text" id="header-status-text">Esperando al otro usuario...</span>
+            </div>
+          </div>
+        </div>
+
+          <a href="/" class="btn btn-pill btn-secondary" title="Volver a Basilisco AI" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; padding: 6px 12px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>Basilisco</span>
+          </a>
+
+          <button id="toggle-search-btn" class="icon-btn" title="Buscar en esta conversación">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+
+          <button id="share-code-btn" class="btn btn-pill btn-accent" title="Copiar código y enlace">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span id="room-code-badge">Código: ...</span>
+          </button>
+          
+          <button id="clear-chat-btn" class="icon-btn" title="Limpiar conversación">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- In-Chat Search Bar (Hidden by default) -->
+      <div class="chat-search-bar hidden" id="chat-search-bar">
+        <input type="text" id="in-chat-search-input" placeholder="Buscar en esta conversación...">
+        <span id="search-matches-count">0/0</span>
+        <button id="close-search-btn" class="icon-btn-subtle" title="Cerrar búsqueda">✕</button>
+      </div>
+
+      <!-- Messages Stream -->
+      <section class="messages-container" id="messages-container" aria-label="Historial de mensajes">
+        <!-- Date pill -->
+        <div class="date-divider">
+          <span id="current-date-pill">Hoy</span>
+        </div>
+
+        <!-- System Security Pill -->
+        <div class="system-notice-card">
+          <div class="notice-icon">🔒</div>
+          <div class="notice-body">
+            <strong>Cifrado P2P & Memoria en la Nube</strong>
+            <p>Conéctate con tu contraparte compartiendo el código de sala o abriendo este enlace en otra pestaña/dispositivo.</p>
+          </div>
+        </div>
+
+        <!-- Dynamic Message items rendered via JS -->
+      </section>
+
+      <!-- Typing indicator bar -->
+      <div class="typing-indicator-bar hidden" id="typing-indicator-bar">
+        <span class="typing-dots">
+          <span></span><span></span><span></span>
+        </span>
+        <span class="typing-text" id="typing-text">Alguien está escribiendo...</span>
+      </div>
+
+      <!-- File Preview Bar (when files are attached before sending) -->
+      <div class="attachment-preview-bar hidden" id="attachment-preview-bar">
+        <div class="preview-item" id="preview-item-content">
+          <!-- Thumbnail / icon injected here -->
+        </div>
+        <button id="cancel-attachment-btn" class="cancel-preview-btn" title="Eliminar adjunto">✕</button>
+      </div>
+
+      <!-- Chat Input Area (Telegram Web Style) -->
+      <footer class="chat-input-area">
+        <!-- Attachment Menu Button -->
+        <div class="attach-dropdown-wrapper">
+          <button id="attach-btn" class="icon-btn-round" title="Adjuntar archivo o imagen" aria-label="Adjuntar archivo">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+          
+          <!-- Dropdown items -->
+          <div class="attach-menu hidden" id="attach-menu">
+            <label class="attach-item" title="Enviar imágenes">
+              <input type="file" id="image-file-input" accept="image/*" hidden>
+              <span class="attach-icon bg-blue">🖼️</span>
+              <span>Foto o Imagen</span>
+            </label>
+            <label class="attach-item" title="Enviar documentos">
+              <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx,.txt,.zip,.json,.js,.py" hidden>
+              <span class="attach-icon bg-purple">📄</span>
+              <span>Archivo / Documento</span>
+            </label>
+            <label class="attach-item" title="Enviar audio">
+              <input type="file" id="audio-file-input" accept="audio/*" hidden>
+              <span class="attach-icon bg-green">🎵</span>
+              <span>Pista de Audio</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Text Input & Voice Recording Overlay -->
+        <div class="input-field-wrapper">
+          <textarea 
+            id="message-input" 
+            placeholder="Escribe un mensaje..." 
+            rows="1" 
+            aria-label="Escribe tu mensaje"></textarea>
+
+          <!-- Voice Recording Live Bar (replaces text input during recording) -->
+          <div class="voice-recording-overlay hidden" id="voice-recording-overlay">
+            <div class="recording-pulse-dot"></div>
+            <span class="recording-time" id="recording-timer">0:00</span>
+            <span class="recording-label">Grabando nota de voz...</span>
+            <button id="cancel-voice-btn" class="btn-voice-cancel" title="Cancelar grabación">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- Quick Emoji / Reaction Button -->
+        <div class="emoji-picker-wrapper">
+          <button id="emoji-btn" class="icon-btn-round" title="Insertar emoji">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/>
+              <line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </button>
+          <div class="quick-emojis-menu hidden" id="quick-emojis-menu">
+            <span class="emoji-opt">👍</span>
+            <span class="emoji-opt">❤️</span>
+            <span class="emoji-opt">🔥</span>
+            <span class="emoji-opt">😂</span>
+            <span class="emoji-opt">🎉</span>
+            <span class="emoji-opt">👏</span>
+            <span class="emoji-opt">🚀</span>
+            <span class="emoji-opt">👀</span>
+            <span class="emoji-opt">✨</span>
+            <span class="emoji-opt">💯</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Mic or Send Button -->
+        <button id="action-btn" class="send-btn" title="Grabar audio" aria-label="Enviar mensaje o grabar audio">
+          <!-- Mic Icon (Default when input empty) -->
+          <svg class="mic-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          <!-- Send Icon (Active when input has text or attachment) -->
+          <svg class="send-icon hidden" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </footer>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- 1. Room Code / Connection Modal -->
+  <div class="modal-overlay hidden" id="room-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Salas y Códigos de Chat</h3>
+        <button class="modal-close-btn" id="close-room-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="current-room-box">
+          <label>Tu Código de Sala Actual:</label>
+          <div class="code-display-row">
+            <span class="room-code-tag" id="modal-room-code">TELE-9999</span>
+            <button id="copy-code-direct" class="btn btn-sm btn-primary">Copiar Código</button>
+            <button id="copy-link-direct" class="btn btn-sm btn-secondary">Copiar Enlace</button>
+          </div>
+          <p class="help-text">Cualquier usuario con este código o enlace entrará directamente a este chat.</p>
+        </div>
+
+        <div class="divider-text"><span>O cambiar de sala</span></div>
+
+        <form id="join-room-form" class="join-form">
+          <label for="room-code-input">Ingresar Código o Nombre de Sala:</label>
+          <div class="input-action-group">
+            <input type="text" id="room-code-input" placeholder="Ej: TELE-4821 o EQUIPO-ALFA" required>
+            <button type="submit" class="btn btn-primary">Conectar</button>
+          </div>
+        </form>
+
+        <div class="generate-random-box">
+          <button id="create-random-room-btn" class="btn btn-ghost btn-full">
+            🎲 Generar nuevo código aleatorio
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. User Profile Modal (Identity & Persona) -->
+  <div class="modal-overlay hidden" id="profile-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Tu Perfil de Usuario</h3>
+        <button class="modal-close-btn" id="close-profile-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="profile-avatar-customizer">
+          <div class="large-avatar" id="profile-modal-avatar">YO</div>
+          <div class="avatar-controls">
+            <p>Elige el color de tu burbuja y avatar:</p>
+            <div class="color-palette" id="avatar-color-palette">
+              <button type="button" class="color-dot" data-color="#5288c1" style="background: #5288c1;"></button>
+              <button type="button" class="color-dot" data-color="#65c466" style="background: #65c466;"></button>
+              <button type="button" class="color-dot" data-color="#e07153" style="background: #e07153;"></button>
+              <button type="button" class="color-dot" data-color="#b660cd" style="background: #b660cd;"></button>
+              <button type="button" class="color-dot" data-color="#e69c24" style="background: #e69c24;"></button>
+              <button type="button" class="color-dot" data-color="#2f96b4" style="background: #2f96b4;"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="user-display-name-input">Tu Nombre o Alias:</label>
+          <input type="text" id="user-display-name-input" maxlength="25" placeholder="Tu nombre...">
+        </div>
+
+        <div class="form-group">
+          <label>ID de Usuario Único:</label>
+          <input type="text" id="user-id-readonly" readonly>
+          <small class="help-text">Identificador seguro guardado en tu navegador para diferenciar tus mensajes.</small>
+        </div>
+
+        <button id="save-profile-btn" class="btn btn-primary btn-full">Guardar Perfil</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Image Fullscreen Lightbox -->
+  <div class="lightbox-overlay hidden" id="lightbox-overlay">
+    <button class="lightbox-close-btn" id="close-lightbox-btn">✕</button>
+    <div class="lightbox-img-wrapper">
+      <img id="lightbox-image" src="" alt="Vista previa de imagen">
+    </div>
+    <div class="lightbox-actions">
+      <a id="lightbox-download-link" class="btn btn-pill btn-accent" download="imagen-chat.png">
+        Descargar imagen
+      </a>
+    </div>
+  </div>
+
+  <!-- Toast Notification Alert Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Main Application Logic (Deferred) -->
+  <script src="app.js" defer></script>
+</body>
+</html>

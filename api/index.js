@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
 
 dotenv.config();
 
@@ -435,8 +437,206 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Basilisco server running on http://localhost:${port}`);
+// ============================================================================
+// --- TeleChat In-Memory & File-Backed Storage (Unified Telegram Clone) ---
+// ============================================================================
+const TELECHAT_FILE = path.join(__dirname, '../chat_memory.json');
+let telechatRooms = {};
+let telechatSaveTimeout = null;
+
+function loadTelechatData() {
+    try {
+        if (fs.existsSync(TELECHAT_FILE)) {
+            const raw = fs.readFileSync(TELECHAT_FILE, 'utf8');
+            telechatRooms = JSON.parse(raw);
+        }
+    } catch (e) {
+        console.error('Error reading chat_memory.json:', e.message);
+        telechatRooms = {};
+    }
+}
+
+function scheduleTelechatSave() {
+    // In serverless environments like Vercel, the filesystem is read-only
+    if (process.env.VERCEL) return;
+    if (telechatSaveTimeout) clearTimeout(telechatSaveTimeout);
+    telechatSaveTimeout = setTimeout(() => {
+        fs.writeFile(TELECHAT_FILE, JSON.stringify(telechatRooms, null, 2), 'utf8', (err) => {
+            if (err) console.error('Error saving chat_memory.json:', err.message);
+        });
+        telechatSaveTimeout = null;
+    }, 400);
+}
+
+loadTelechatData();
+
+// Active TeleChat SSE Connections: roomCode -> Set of response objects
+const telechatSseClients = new Map();
+
+function broadcastToTelechatRoom(roomCode, eventType, data) {
+    const clients = telechatSseClients.get(roomCode);
+    if (clients && clients.size > 0) {
+        const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+        clients.forEach(clientRes => {
+            try {
+                clientRes.write(payload);
+            } catch (e) {
+                clients.delete(clientRes);
+            }
+        });
+    }
+}
+
+// Keep-alive heartbeat every 25 seconds for SSE
+const telechatKeepalive = setInterval(() => {
+    telechatSseClients.forEach((clients, room) => {
+        clients.forEach(clientRes => {
+            try {
+                clientRes.write(': keepalive\n\n');
+            } catch (e) {
+                clients.delete(clientRes);
+            }
+        });
+        if (clients.size === 0) telechatSseClients.delete(room);
+    });
+}, 25000);
+if (telechatKeepalive.unref) telechatKeepalive.unref();
+
+// 1. SSE Real-time stream: GET /api/stream?room=XYZ
+app.get('/api/stream', (req, res) => {
+    const room = (req.query.room || 'TELE-CHAT').toUpperCase();
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+
+    res.write(`event: connected\ndata: {"status":"connected","room":"${room}"}\n\n`);
+
+    if (!telechatSseClients.has(room)) {
+        telechatSseClients.set(room, new Set());
+    }
+    const set = telechatSseClients.get(room);
+    set.add(res);
+
+    req.on('close', () => {
+        set.delete(res);
+        if (set.size === 0) telechatSseClients.delete(room);
+    });
 });
+
+// 2. Get Messages: GET /api/messages?room=XYZ (with gzip support)
+app.get('/api/messages', (req, res) => {
+    const room = (req.query.room || 'TELE-CHAT').toUpperCase();
+    const messages = telechatRooms[room] || [];
+    const jsonStr = JSON.stringify(messages);
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+
+    if (acceptEncoding.includes('gzip') && jsonStr.length > 512) {
+        zlib.gzip(Buffer.from(jsonStr), (err, zipped) => {
+            if (err) {
+                res.setHeader('Content-Type', 'application/json');
+                return res.send(jsonStr);
+            }
+            res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Content-Encoding': 'gzip',
+                'Cache-Control': 'no-cache'
+            });
+            res.end(zipped);
+        });
+    } else {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.send(jsonStr);
+    }
+});
+
+// 3. Post Message: POST /api/messages
+app.post('/api/messages', (req, res) => {
+    try {
+        const payload = req.body;
+        const room = (payload.room || 'TELE-CHAT').toUpperCase();
+        const msg = payload.message;
+
+        if (!telechatRooms[room]) telechatRooms[room] = [];
+
+        if (msg && !telechatRooms[room].some(m => m.id === msg.id)) {
+            telechatRooms[room].push(msg);
+            scheduleTelechatSave();
+            broadcastToTelechatRoom(room, 'message', msg);
+        }
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(400).json({ error: 'Invalid payload' });
+    }
+});
+
+// 4. Post Reaction: POST /api/reaction
+app.post('/api/reaction', (req, res) => {
+    try {
+        const payload = req.body;
+        const room = (payload.room || 'TELE-CHAT').toUpperCase();
+        const { messageId, emoji } = payload;
+
+        if (telechatRooms[room]) {
+            const target = telechatRooms[room].find(m => m.id === messageId);
+            if (target) {
+                target.reactions = target.reactions || {};
+                target.reactions[emoji] = (target.reactions[emoji] || 0) + 1;
+                scheduleTelechatSave();
+                broadcastToTelechatRoom(room, 'reaction', { messageId, emoji });
+            }
+        }
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(400).json({ error: 'Invalid payload' });
+    }
+});
+
+// 5. Post Read Receipt: POST /api/receipt
+app.post('/api/receipt', (req, res) => {
+    try {
+        const payload = req.body;
+        const room = (payload.room || 'TELE-CHAT').toUpperCase();
+        const { messageId } = payload;
+
+        if (telechatRooms[room]) {
+            const target = telechatRooms[room].find(m => m.id === messageId);
+            if (target && target.status !== 'read') {
+                target.status = 'read';
+                scheduleTelechatSave();
+                broadcastToTelechatRoom(room, 'receipt', { messageId });
+            }
+        }
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(400).json({ error: 'Invalid payload' });
+    }
+});
+
+// 6. Clear Room: POST /api/clear
+app.post('/api/clear', (req, res) => {
+    try {
+        const payload = req.body;
+        const room = (payload.room || 'TELE-CHAT').toUpperCase();
+        telechatRooms[room] = [];
+        scheduleTelechatSave();
+        broadcastToTelechatRoom(room, 'clear', { room });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(400).json({ error: 'Invalid payload' });
+    }
+});
+
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Basilisco server running on http://localhost:${port}`);
+    });
+}
 
 module.exports = app;
