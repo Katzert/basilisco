@@ -5,6 +5,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const zlib = require('zlib');
 
 dotenv.config();
@@ -60,6 +61,78 @@ Para pensar, DEBES usar este formato exacto:
 IMPORTANTE: 
 1. NO escribas NADA antes de <think>.
 2. Responde usando datos de foros y documentación oficial.`;
+
+// OpenCode Zen & DeepSeek direct integration helpers
+function getOpenCodeKey() {
+    if (process.env.OPENCODE_API_KEY) return process.env.OPENCODE_API_KEY;
+    if (process.env.OPENCODE_ZEN_API_KEY) return process.env.OPENCODE_ZEN_API_KEY;
+    try {
+        const authPath = path.join(os.homedir(), '.local', 'share', 'opencode', 'auth.json');
+        if (fs.existsSync(authPath)) {
+            const data = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+            if (data.opencode?.key) return data.opencode.key;
+        }
+    } catch (e) {}
+    return null;
+}
+
+function getDeepSeekKey() {
+    return process.env.DEEPSEEK_API_KEY || null;
+}
+
+function convertHistoryToOpenAiMessages(sanitizedHistory, systemInstruction, currentMessage) {
+    const messages = [];
+    if (systemInstruction) {
+        messages.push({ role: 'system', content: systemInstruction });
+    }
+    for (const item of sanitizedHistory) {
+        const textParts = (item.parts || []).map(p => p.text || '').filter(Boolean).join('\n');
+        if (textParts) {
+            messages.push({
+                role: item.role === 'model' ? 'assistant' : 'user',
+                content: textParts
+            });
+        }
+    }
+    if (currentMessage) {
+        messages.push({ role: 'user', content: currentMessage });
+    }
+    return messages;
+}
+
+async function callOpenAiCompatible({ apiKey, baseUrl, modelName, messages }) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 28000);
+    try {
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'User-Agent': 'opencode/1.18.18'
+            },
+            body: JSON.stringify({
+                model: modelName,
+                messages,
+                temperature: 0.7
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`HTTP ${res.status}: ${errText}`);
+        }
+        const data = await res.json();
+        return {
+            text: data.choices?.[0]?.message?.content || '',
+            totalTokens: data.usage?.total_tokens || 0,
+            model: data.model || modelName
+        };
+    } finally {
+        clearTimeout(timeout);
+    }
+}
 
 // Cascade fallback matrix with exact verified live models from Google Generative Language API
 function getModelCandidates(requestedModel) {
@@ -203,6 +276,84 @@ app.post('/api/chat', async (req, res) => {
         if (message) parts.push(message);
         if (media_parts && Array.isArray(media_parts)) {
             parts.push(...media_parts);
+        }
+
+        // Check if real external provider (OpenCode Zen or DeepSeek) is available
+        const isZenOrDeepseek = model && (model.startsWith('zen') || model.toLowerCase().includes('deepseek') || model.startsWith('opencode/'));
+        const opencodeKey = getOpenCodeKey();
+        const deepseekKey = getDeepSeekKey();
+
+        if (isZenOrDeepseek && (deepseekKey || opencodeKey)) {
+            try {
+                let baseUrl = 'https://opencode.ai/zen/v1';
+                let apiKey = opencodeKey;
+                let targetModel = 'deepseek-v4-flash';
+
+                const m = (model || '').toLowerCase();
+                if (deepseekKey && (m === 'zendeepseek' || m.includes('deepseek'))) {
+                    baseUrl = 'https://api.deepseek.com';
+                    apiKey = deepseekKey;
+                    targetModel = shouldThink ? 'deepseek-reasoner' : 'deepseek-chat';
+                } else if (opencodeKey) {
+                    if (m === 'zennemotron') targetModel = 'nemotron-3-ultra-free';
+                    else if (m === 'zenmimo') targetModel = 'mimo-v2.6-flash-free';
+                    else if (m === 'zenling') targetModel = 'ling-3.0-flash-fin-free';
+                    else if (m === 'zennorth') targetModel = 'big-pickle';
+                    else targetModel = 'deepseek-v4-flash';
+                }
+
+                console.log(`[EXTERNAL LLM ATTEMPT] Calling ${baseUrl} with model ${targetModel}...`);
+                const externalInstruction = getSystemInstruction(model, targetModel, shouldThink, hasInternet);
+                const openAiMsgs = convertHistoryToOpenAiMessages(sanitizedHistory, externalInstruction, message);
+                
+                const extResult = await callOpenAiCompatible({
+                    apiKey,
+                    baseUrl,
+                    modelName: targetModel,
+                    messages: openAiMsgs
+                });
+
+                if (extResult && extResult.text) {
+                    console.log(`[EXTERNAL LLM SUCCESS] Received response from ${targetModel}`);
+                    let formattedOutput = extResult.text;
+                    
+                    const userParts = parts.map(p => {
+                        if (typeof p === 'string') return { text: p };
+                        if (p.inlineData) return { inlineData: { mimeType: p.inlineData.mimeType, data: p.inlineData.data } };
+                        return { text: "" };
+                    });
+                    sanitizedHistory.push({ role: 'user', parts: userParts });
+                    sanitizedHistory.push({ role: 'model', parts: [{ text: formattedOutput }] });
+
+                    sessionsHistory[currentSessionId] = JSON.parse(JSON.stringify(sanitizedHistory));
+                    saveSessions();
+
+                    const now = Date.now();
+                    usageLog.push({ timestamp: now, tokens: extResult.totalTokens });
+                    rpdCount++;
+                    const rpm = usageLog.length;
+                    const tpm = usageLog.reduce((sum, entry) => sum + entry.tokens, 0);
+
+                    return res.json({
+                        text: formattedOutput,
+                        interaction_id: currentSessionId,
+                        message_index: sanitizedHistory.length - 2,
+                        active_model: `${extResult.model} (Direct API)`,
+                        fallback_used: false,
+                        usage: {
+                            rpm,
+                            tpm,
+                            rpd: rpdCount,
+                            maxRpm: 30,
+                            maxTpm: '100K',
+                            maxRpd: 100,
+                            actualModel: extResult.model
+                        }
+                    });
+                }
+            } catch (extErr) {
+                console.warn(`[EXTERNAL LLM FALLBACK] External provider error: ${extErr.message}. Falling back to Gemini cascade.`);
+            }
         }
 
         // Get candidate models cascade
