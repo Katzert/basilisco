@@ -67,26 +67,26 @@ function getModelCandidates(requestedModel) {
     switch (m) {
         case 'flash':
         case 'flash3':
-            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
         case 'thinking':
-            return ['gemini-2.0-flash-thinking-exp-01-21', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
         case 'antigravity':
         case 'agent':
-            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite'];
         case 'gemma26':
         case 'gemma-26b':
         case 'gemma4':
         case 'gemma-31b':
-            return ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+            return ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash-lite'];
         case 'zendeepseek':
         case 'zennemotron':
         case 'zenlaguna':
         case 'zenmimo':
         case 'zenling':
         case 'zennorth':
-            return ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+            return ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash-lite'];
         default:
-            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+            return ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash-lite'];
     }
 }
 
@@ -223,7 +223,8 @@ app.post('/api/chat', async (req, res) => {
                     modelConfig.tools = [{ googleSearch: {} }];
                 }
 
-                if (shouldThink && (candidate.includes('thinking') || candidate.includes('2.5'))) {
+                // In Google Generative AI, tools (googleSearch) and thinkingConfig cannot be sent together
+                if (shouldThink && !hasInternet && (candidate.includes('thinking') || candidate.includes('2.5'))) {
                     modelConfig.generationConfig = {
                         thinkingConfig: {
                             includeThoughts: true,
@@ -244,8 +245,8 @@ app.post('/api/chat', async (req, res) => {
 
                 console.log(`[ATTEMPT] Model: ${candidate} (requested: ${model}, thinking: ${shouldThink}, internet: ${hasInternet})`);
                 
-                // Timeout per candidate to guarantee snappy response
-                const timeoutLimit = 12000;
+                // Timeout per candidate: 22000ms gives adequate time for reasoning / search
+                const timeoutLimit = 22000;
                 const timeoutPromise = new Promise((_, reject) => 
                     setTimeout(() => reject(new Error(`Timeout de ${timeoutLimit}ms superado en ${candidate}`)), timeoutLimit)
                 );
