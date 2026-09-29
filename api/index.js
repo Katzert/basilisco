@@ -100,17 +100,21 @@ function convertHistoryToOpenAiMessages(sanitizedHistory, systemInstruction, cur
     return messages;
 }
 
-async function callOpenAiCompatible({ apiKey, baseUrl, modelName, messages }) {
+async function callOpenAiCompatible({ apiKey, baseUrl, modelName, messages, sessionId }) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 28000);
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'User-Agent': 'basilisco/1.0'
+        };
+        if (sessionId) {
+            headers['x-opencode-session'] = sessionId;
+        }
         const res = await fetch(`${baseUrl}/chat/completions`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'User-Agent': 'opencode/1.18.18'
-            },
+            headers,
             body: JSON.stringify({
                 model: modelName,
                 messages,
@@ -121,7 +125,10 @@ async function callOpenAiCompatible({ apiKey, baseUrl, modelName, messages }) {
         clearTimeout(timeout);
         if (!res.ok) {
             const errText = await res.text();
-            throw new Error(`HTTP ${res.status}: ${errText}`);
+            let parsedErr;
+            try { parsedErr = JSON.parse(errText); } catch(e) {}
+            const msg = parsedErr?.error?.message || errText;
+            throw new Error(`[HTTP ${res.status}] ${msg}`);
         }
         const data = await res.json();
         return {
@@ -283,9 +290,10 @@ app.post('/api/chat', async (req, res) => {
         const opencodeKey = getOpenCodeKey();
         const deepseekKey = getDeepSeekKey();
 
+        let globalRegionWarning = null;
         if (isZenOrDeepseek && (deepseekKey || opencodeKey)) {
             try {
-                let baseUrl = 'https://opencode.ai/zen/v1';
+                let baseUrl = 'https://opencode.ai/zen/go/v1';
                 let apiKey = opencodeKey;
                 let targetModel = 'deepseek-v4-flash';
 
@@ -295,6 +303,7 @@ app.post('/api/chat', async (req, res) => {
                     apiKey = deepseekKey;
                     targetModel = shouldThink ? 'deepseek-reasoner' : 'deepseek-chat';
                 } else if (opencodeKey) {
+                    baseUrl = 'https://opencode.ai/zen/go/v1';
                     if (m === 'zennemotron') targetModel = 'nemotron-3-ultra-free';
                     else if (m === 'zenmimo') targetModel = 'mimo-v2.6-flash-free';
                     else if (m === 'zenling') targetModel = 'ling-3.0-flash-fin-free';
@@ -306,12 +315,29 @@ app.post('/api/chat', async (req, res) => {
                 const externalInstruction = getSystemInstruction(model, targetModel, shouldThink, hasInternet);
                 const openAiMsgs = convertHistoryToOpenAiMessages(sanitizedHistory, externalInstruction, message);
                 
-                const extResult = await callOpenAiCompatible({
-                    apiKey,
-                    baseUrl,
-                    modelName: targetModel,
-                    messages: openAiMsgs
-                });
+                let extResult = null;
+                try {
+                    extResult = await callOpenAiCompatible({
+                        apiKey,
+                        baseUrl,
+                        modelName: targetModel,
+                        messages: openAiMsgs,
+                        sessionId: currentSessionId
+                    });
+                } catch (goErr) {
+                    if (baseUrl.includes('zen/go') && !goErr.message.includes('Global regions')) {
+                        console.warn(`[EXTERNAL LLM] Go endpoint failed, trying /zen/v1 fallback: ${goErr.message}`);
+                        extResult = await callOpenAiCompatible({
+                            apiKey,
+                            baseUrl: 'https://opencode.ai/zen/v1',
+                            modelName: targetModel,
+                            messages: openAiMsgs,
+                            sessionId: currentSessionId
+                        });
+                    } else {
+                        throw goErr;
+                    }
+                }
 
                 if (extResult && extResult.text) {
                     console.log(`[EXTERNAL LLM SUCCESS] Received response from ${targetModel}`);
@@ -338,7 +364,7 @@ app.post('/api/chat', async (req, res) => {
                         text: formattedOutput,
                         interaction_id: currentSessionId,
                         message_index: sanitizedHistory.length - 2,
-                        active_model: `${extResult.model} (Direct API)`,
+                        active_model: `${extResult.model} (OpenCode Zen Direct)`,
                         fallback_used: false,
                         usage: {
                             rpm,
@@ -353,6 +379,9 @@ app.post('/api/chat', async (req, res) => {
                 }
             } catch (extErr) {
                 console.warn(`[EXTERNAL LLM FALLBACK] External provider error: ${extErr.message}. Falling back to Gemini cascade.`);
+                if (extErr.message && extErr.message.includes('Global regions')) {
+                    globalRegionWarning = `> ⚠️ **OpenCode Zen Notice**: Tu API Key está activa en el endpoint oficial \`zen/go/v1\`, pero OpenCode requiere habilitar **"Global regions"** en tu cuenta (visita [opencode.ai/workspace](https://opencode.ai/workspace) > **Settings** > **Privacy** y selecciona **Global**) para habilitar DeepSeek. Mientras tanto, Basilisco procesó tu consulta con Gemini Flash.\n\n`;
+                }
             }
         }
 
@@ -515,6 +544,10 @@ app.post('/api/chat', async (req, res) => {
             if (!formattedOutput.includes('<think>')) {
                 formattedOutput = `<think>\n${nativeThoughts.trim()}\n</think>\n\n${formattedOutput.trim()}`;
             }
+        }
+
+        if (globalRegionWarning) {
+            formattedOutput = globalRegionWarning + formattedOutput;
         }
 
         // Extract grounding citations (web sources) from Google Search
